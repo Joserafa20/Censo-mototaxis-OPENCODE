@@ -50,3 +50,48 @@ export class PasswordPolicyViolationError extends Error {
     this.name = "PasswordPolicyViolationError";
   }
 }
+
+export class LastAdminDeactivationError extends Error {
+  readonly statusCode = 409;
+
+  constructor(message = "Cannot deactivate the last active admin user") {
+    super(message);
+    this.name = "LastAdminDeactivationError";
+  }
+}
+
+export class InsufficientPermissionsError extends Error {
+  readonly statusCode = 403;
+
+  constructor(message = "Insufficient permissions for this operation") {
+    super(message);
+    this.name = "InsufficientPermissionsError";
+  }
+}
+
+export class UserNotFoundError extends Error {
+  readonly statusCode = 404;
+
+  constructor(message = "User not found") {
+    super(message);
+    this.name = "UserNotFoundError";
+  }
+}
+
+export class PasswordResetTokenExpiredError extends Error {
+  readonly statusCode = 410;
+
+  constructor(message = "Password reset token has expired") {
+    super(message);
+    this.name = "PasswordResetTokenExpiredError";
+  }
+}
+
+export class PasswordResetTokenUsedError extends Error {
+  readonly statusCode = 410;
+
+  constructor(message = "Password reset token has already been used") {
+    super(message);
+    this.name = "PasswordResetTokenUsedError";
+  }
+}

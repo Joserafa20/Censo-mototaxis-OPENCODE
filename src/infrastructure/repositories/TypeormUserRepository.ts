@@ -63,8 +63,12 @@ export class TypeormUserRepository implements IUserRepository {
       documentNumber: entity.documentNumber,
       phoneNumber: entity.phoneNumber,
       isActive: entity.isActive,
+      isFirstLogin: entity.isFirstLogin,
+      forcePasswordChange: entity.forcePasswordChange,
       failedLoginAttempts: entity.failedLoginAttempts,
       lockedUntil: entity.lockedUntil,
+      deactivatedAt: entity.deactivatedAt,
+      deactivatedBy: entity.deactivatedBy,
     };
   }
 
@@ -78,8 +82,12 @@ export class TypeormUserRepository implements IUserRepository {
     entity.documentNumber = user.documentNumber;
     entity.phoneNumber = user.phoneNumber;
     entity.isActive = user.isActive;
+    entity.isFirstLogin = user.isFirstLogin;
+    entity.forcePasswordChange = user.forcePasswordChange;
     entity.failedLoginAttempts = user.failedLoginAttempts;
     entity.lockedUntil = user.lockedUntil;
+    entity.deactivatedAt = user.deactivatedAt;
+    entity.deactivatedBy = user.deactivatedBy;
     return entity;
   }
 }

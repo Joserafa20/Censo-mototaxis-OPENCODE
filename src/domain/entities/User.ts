@@ -19,8 +19,12 @@ export interface User {
   documentNumber: string | null;
   phoneNumber: string | null;
   isActive: boolean;
+  isFirstLogin: boolean;
+  forcePasswordChange: boolean;
   failedLoginAttempts: number;
   lockedUntil: Date | null;
+  deactivatedAt: Date | null;
+  deactivatedBy: string | null;
 }
 
 /**
@@ -33,8 +37,12 @@ export function createUser(overrides: Partial<User> & { id: string; passwordHash
     documentNumber: null,
     phoneNumber: null,
     isActive: true,
+    isFirstLogin: true,
+    forcePasswordChange: false,
     failedLoginAttempts: 0,
     lockedUntil: null,
+    deactivatedAt: null,
+    deactivatedBy: null,
     ...overrides,
   };
 }
@@ -45,4 +53,11 @@ export function createUser(overrides: Partial<User> & { id: string; passwordHash
 export function isAccountLocked(user: User): boolean {
   if (user.lockedUntil === null) return false;
   return user.lockedUntil > new Date();
+}
+
+/**
+ * Checks whether the user has administrative privileges.
+ */
+export function isAdmin(user: User): boolean {
+  return user.role === "admin";
 }

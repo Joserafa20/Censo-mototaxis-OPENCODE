@@ -12,6 +12,8 @@ import { env } from "../config/env.js";
 import { UserEntity } from "./entities/UserEntity.js";
 import { RefreshTokenEntity } from "./entities/RefreshTokenEntity.js";
 import { LoginAuditEntity } from "./entities/LoginAuditEntity.js";
+import { PasswordResetTokenEntity } from "./entities/PasswordResetTokenEntity.js";
+import { UserAuditLogEntity } from "./entities/UserAuditLogEntity.js";
 
 const dataSourceOptions: DataSourceOptions = {
   type: "postgres",
@@ -22,7 +24,13 @@ const dataSourceOptions: DataSourceOptions = {
   database: env.database.name,
   synchronize: env.database.synchronize,
   logging: env.database.logging,
-  entities: [UserEntity, RefreshTokenEntity, LoginAuditEntity],
+  entities: [
+    UserEntity,
+    RefreshTokenEntity,
+    LoginAuditEntity,
+    PasswordResetTokenEntity,
+    UserAuditLogEntity,
+  ],
   migrations: ["./dist/infrastructure/database/migrations/*.js"],
 };
 

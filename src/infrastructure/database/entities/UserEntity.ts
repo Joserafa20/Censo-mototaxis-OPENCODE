@@ -40,11 +40,23 @@ export class UserEntity {
   @Column({ type: "boolean", default: true })
   isActive!: boolean;
 
+  @Column({ type: "boolean", default: true })
+  isFirstLogin!: boolean;
+
+  @Column({ type: "boolean", default: false })
+  forcePasswordChange!: boolean;
+
   @Column({ type: "integer", default: 0 })
   failedLoginAttempts!: number;
 
   @Column({ type: "datetime", nullable: true })
   lockedUntil!: Date | null;
+
+  @Column({ type: "datetime", nullable: true })
+  deactivatedAt!: Date | null;
+
+  @Column({ type: "uuid", nullable: true })
+  deactivatedBy!: string | null;
 
   @CreateDateColumn()
   createdAt!: Date;
