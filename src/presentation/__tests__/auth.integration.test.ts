@@ -45,6 +45,10 @@ function makeUserRepo(): IUserRepository {
     incrementFailedAttempts: jest.fn().mockResolvedValue(undefined),
     lockAccount: jest.fn().mockResolvedValue(undefined),
     resetFailedAttempts: jest.fn().mockResolvedValue(undefined),
+    save: jest.fn().mockResolvedValue(undefined),
+    countActiveAdmins: jest.fn().mockResolvedValue(1),
+    findAll: jest.fn().mockResolvedValue([]),
+    countAll: jest.fn().mockResolvedValue(0),
   };
 }
 

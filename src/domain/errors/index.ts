@@ -9,4 +9,6 @@ export {
   UserNotFoundError,
   PasswordResetTokenExpiredError,
   PasswordResetTokenUsedError,
+  EmailAlreadyExistsError,
+  DocumentAlreadyExistsError,
 } from "./AuthErrors.js";

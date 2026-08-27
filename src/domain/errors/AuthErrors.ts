@@ -95,3 +95,21 @@ export class PasswordResetTokenUsedError extends Error {
     this.name = "PasswordResetTokenUsedError";
   }
 }
+
+export class EmailAlreadyExistsError extends Error {
+  readonly statusCode = 409;
+
+  constructor(email: string) {
+    super(`Email "${email}" is already registered`);
+    this.name = "EmailAlreadyExistsError";
+  }
+}
+
+export class DocumentAlreadyExistsError extends Error {
+  readonly statusCode = 409;
+
+  constructor(documentNumber: string) {
+    super(`Document number "${documentNumber}" is already registered`);
+    this.name = "DocumentAlreadyExistsError";
+  }
+}

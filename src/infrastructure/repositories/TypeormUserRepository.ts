@@ -5,8 +5,8 @@
  * Maps between domain User entities and TypeORM UserEntity records.
  */
 
-import { type Repository } from "typeorm";
-import type { IUserRepository } from "../../domain/repositories/IUserRepository.js";
+import { type Repository, Like, IsNull } from "typeorm";
+import type { IUserRepository, UserListFilters, UserListOptions } from "../../domain/repositories/IUserRepository.js";
 import type { User } from "../../domain/entities/User.js";
 import { UserEntity } from "../database/entities/UserEntity.js";
 
@@ -51,6 +51,76 @@ export class TypeormUserRepository implements IUserRepository {
   async save(user: User): Promise<void> {
     const entity = this.toEntity(user);
     await this.repo.save(entity);
+  }
+
+  async countActiveAdmins(): Promise<number> {
+    return this.repo.count({
+      where: {
+        role: "admin",
+        isActive: true,
+      },
+    });
+  }
+
+  async findAll(options?: UserListOptions): Promise<User[]> {
+    const qb = this.repo.createQueryBuilder("user");
+
+    if (options?.filters) {
+      const { role, isActive, searchTerm } = options.filters;
+
+      if (role !== undefined) {
+        qb.andWhere("user.role = :role", { role });
+      }
+
+      if (isActive !== undefined) {
+        qb.andWhere("user.isActive = :isActive", { isActive });
+      }
+
+      if (searchTerm) {
+        qb.andWhere(
+          "(user.email ILIKE :term OR user.documentNumber ILIKE :term)",
+          { term: `%${searchTerm}%` }
+        );
+      }
+    }
+
+    qb.orderBy("user.createdAt", "DESC");
+
+    if (options?.limit) {
+      qb.take(options.limit);
+    }
+
+    if (options?.offset) {
+      qb.skip(options.offset);
+    }
+
+    const entities = await qb.getMany();
+    return entities.map(this.toDomain);
+  }
+
+  async countAll(filters?: UserListFilters): Promise<number> {
+    const qb = this.repo.createQueryBuilder("user");
+
+    if (filters) {
+      const { role, isActive, searchTerm } = filters;
+
+      if (role !== undefined) {
+        qb.andWhere("user.role = :role", { role });
+      }
+
+      if (isActive !== undefined) {
+        qb.andWhere("user.isActive = :isActive", { isActive });
+      }
+
+      if (searchTerm) {
+        qb.andWhere(
+          "(user.email ILIKE :term OR user.documentNumber ILIKE :term)",
+          { term: `%${searchTerm}%` }
+        );
+      }
+    }
+
+    return qb.getCount();
   }
 
   private toDomain(entity: UserEntity): User {
