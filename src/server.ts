@@ -8,9 +8,12 @@
 import { createApp } from "./app.js";
 import { JwtTokenService } from "./infrastructure/services/JwtTokenService.js";
 import { BcryptPasswordHasher } from "./infrastructure/services/BcryptPasswordHasher.js";
+import { CryptoSecureTokenGenerator } from "./infrastructure/services/CryptoSecureTokenGenerator.js";
 import { TypeormUserRepository } from "./infrastructure/repositories/TypeormUserRepository.js";
 import { TypeormRefreshTokenRepository } from "./infrastructure/repositories/TypeormRefreshTokenRepository.js";
 import { TypeormLoginAuditRepository } from "./infrastructure/repositories/TypeormLoginAuditRepository.js";
+import { TypeormUserAuditRepository } from "./infrastructure/repositories/TypeormUserAuditRepository.js";
+import { TypeormPasswordResetRepository } from "./infrastructure/repositories/TypeormPasswordResetRepository.js";
 
 async function main(): Promise<void> {
   // Load environment
@@ -25,6 +28,7 @@ async function main(): Promise<void> {
   });
 
   const passwordHasher = new BcryptPasswordHasher();
+  const secureTokenGenerator = new CryptoSecureTokenGenerator();
 
   // Initialize repositories (using TypeORM data source)
   const { AppDataSource } = await import(
@@ -41,14 +45,23 @@ async function main(): Promise<void> {
   const auditRepo = new TypeormLoginAuditRepository(
     AppDataSource.getRepository("LoginAuditEntity") as any
   );
+  const userAuditRepo = new TypeormUserAuditRepository(
+    AppDataSource.getRepository("UserAuditLogEntity") as any
+  );
+  const passwordResetRepo = new TypeormPasswordResetRepository(
+    AppDataSource.getRepository("PasswordResetTokenEntity") as any
+  );
 
   // Create and start app
   const app = createApp({
     userRepo,
     refreshTokenRepo,
     auditRepo,
+    userAuditRepo,
+    passwordResetRepo,
     passwordHasher,
     tokenService,
+    secureTokenGenerator,
   });
 
   const port = parseInt(process.env["PORT"] ?? "3000", 10);
