@@ -11,7 +11,7 @@
  * - ACTIVO -> INACTIVO (deactivate) is also allowed.
  */
 
-export type CensusPeriodStatus = "INACTIVO" | "ACTIVO" | "FINALIZADO";
+export type CensusPeriodStatus = "INACTIVO" | "ACTIVO" | "FINALIZADO" | "CERRADO";
 
 export interface CensusPeriod {
   id: string;
@@ -20,6 +20,8 @@ export interface CensusPeriod {
   startDate: Date;
   endDate: Date;
   status: CensusPeriodStatus;
+  closedAt?: Date | null;
+  closedByUserId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,8 +32,9 @@ export interface CensusPeriod {
  */
 const VALID_TRANSITIONS: Record<CensusPeriodStatus, CensusPeriodStatus[]> = {
   INACTIVO: ["ACTIVO", "FINALIZADO"],
-  ACTIVO: ["FINALIZADO", "INACTIVO"],
+  ACTIVO: ["FINALIZADO", "INACTIVO", "CERRADO"],
   FINALIZADO: [],
+  CERRADO: [],
 };
 
 /**
@@ -54,6 +57,8 @@ export function createCensusPeriod(
   return {
     description: null,
     status: "INACTIVO",
+    closedAt: null,
+    closedByUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

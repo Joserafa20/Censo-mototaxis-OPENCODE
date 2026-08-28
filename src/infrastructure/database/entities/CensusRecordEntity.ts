@@ -12,6 +12,7 @@ import {
 @Index(["motorcyclePlate"], { unique: true })
 @Index(["status"])
 @Index(["periodId"])
+@Index(["status", "periodId"])
 export class CensusRecordEntity {
   @PrimaryColumn("uuid")
   id!: string;
@@ -72,6 +73,15 @@ export class CensusRecordEntity {
 
   @Column({ type: "varchar", length: 255, nullable: true })
   inactiveReason!: string | null;
+
+  @Column({ type: "varchar", length: 500, nullable: true })
+  validationReason!: string | null;
+
+  @Column({ type: "uuid", nullable: true })
+  validatedBy!: string | null;
+
+  @Column({ type: "datetime", nullable: true })
+  validatedAt!: Date | null;
 
   @Column({ type: "uuid" })
   createdByUserId!: string;

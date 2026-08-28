@@ -17,6 +17,7 @@ import type { CreateCensusPeriodUseCase } from "../../application/use-cases/Crea
 import type { UpdateCensusPeriodUseCase } from "../../application/use-cases/UpdateCensusPeriodUseCase.js";
 import type { ChangeCensusPeriodStatusUseCase } from "../../application/use-cases/ChangeCensusPeriodStatusUseCase.js";
 import type { ListCensusPeriodsUseCase } from "../../application/use-cases/ListCensusPeriodsUseCase.js";
+import type { CloseCensusPeriodUseCase } from "../../application/use-cases/CloseCensusPeriodUseCase.js";
 import type { ICensusPeriodRepository } from "../../domain/repositories/ICensusPeriodRepository.js";
 import type { CensusPeriodStatus } from "../../domain/entities/CensusPeriod.js";
 
@@ -26,7 +27,8 @@ export class CensusPeriodController {
     private readonly updateUseCase: UpdateCensusPeriodUseCase,
     private readonly changeStatusUseCase: ChangeCensusPeriodStatusUseCase,
     private readonly listUseCase: ListCensusPeriodsUseCase,
-    private readonly periodRepo: ICensusPeriodRepository
+    private readonly periodRepo: ICensusPeriodRepository,
+    private readonly closeUseCase?: CloseCensusPeriodUseCase
   ) {}
 
   /**
@@ -157,6 +159,22 @@ export class CensusPeriodController {
 
       res.status(200).json({ message: `Census period status changed to ${status}` });
     } catch (error) {
+      next(error);
+    }
+  };
+
+  close = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.closeUseCase) { res.status(500).json({ error: "Not configured" }); return; }
+      const id = String(req.params.id);
+      const actor = req.user!;
+      const result = await this.closeUseCase.execute({ periodId: id, adminId: actor.userId, adminRole: actor.role });
+      res.status(200).json({ id: result.id, status: result.status, closedAt: new Date().toISOString() });
+    } catch (error) {
+      const e:any = error;
+      if (e?.statusCode === 409) { res.status(409).json({ code: e.code, message: e.message, pendingCount: e.pendingCount, inProgressCount: e.inProgressCount }); return; }
+      if (e?.statusCode === 403) { res.status(403).json({ error: "Forbidden", message: e.message }); return; }
+      if (e?.statusCode === 404) { res.status(404).json({ error: "Not Found", message: e.message }); return; }
       next(error);
     }
   };

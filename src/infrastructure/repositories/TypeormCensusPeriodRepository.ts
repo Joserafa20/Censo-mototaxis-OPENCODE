@@ -93,6 +93,20 @@ export class TypeormCensusPeriodRepository implements ICensusPeriodRepository {
     return count > 0;
   }
 
+  async close(id: string, adminId: string): Promise<CensusPeriod> {
+    const period = await this.repo.findOneBy({ id });
+    if (!period) throw Object.assign(new Error(`Census period ${id} not found`), { statusCode: 404, name: "NotFound", code: "PERIOD_NOT_FOUND" });
+    if (period.status === "CERRADO" || period.status === "FINALIZADO") {
+      const e: any = new Error("PERIOD_ALREADY_CLOSED");
+      e.statusCode = 409; e.code = "PERIOD_ALREADY_CLOSED"; throw e;
+    }
+    period.status = "CERRADO" as any;
+    period.closedAt = new Date();
+    period.closedByUserId = adminId;
+    await this.repo.save(period);
+    return this.toDomain(period);
+  }
+
   private toDomain(entity: CensusPeriodEntity): CensusPeriod {
     return {
       id: entity.id,
@@ -100,7 +114,9 @@ export class TypeormCensusPeriodRepository implements ICensusPeriodRepository {
       description: entity.description,
       startDate: entity.startDate,
       endDate: entity.endDate,
-      status: entity.status,
+      status: entity.status as any,
+      closedAt: (entity as any).closedAt ?? null,
+      closedByUserId: (entity as any).closedByUserId ?? null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -113,7 +129,9 @@ export class TypeormCensusPeriodRepository implements ICensusPeriodRepository {
     entity.description = period.description;
     entity.startDate = period.startDate;
     entity.endDate = period.endDate;
-    entity.status = period.status;
+    entity.status = period.status as any;
+    (entity as any).closedAt = (period as any).closedAt ?? null;
+    (entity as any).closedByUserId = (period as any).closedByUserId ?? null;
     entity.createdAt = period.createdAt;
     entity.updatedAt = period.updatedAt;
     return entity;

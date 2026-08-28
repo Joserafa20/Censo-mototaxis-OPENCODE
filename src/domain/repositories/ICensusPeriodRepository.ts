@@ -26,4 +26,5 @@ export interface ICensusPeriodRepository {
   countAll(filters?: CensusPeriodListFilters): Promise<number>;
   countActive(): Promise<number>;
   hasOverlap(startDate: Date, endDate: Date, excludeId?: string): Promise<boolean>;
+  close?(id: string, adminId: string): Promise<CensusPeriod>;
 }

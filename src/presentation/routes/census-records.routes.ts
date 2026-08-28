@@ -22,5 +22,10 @@ export function createCensusRecordRoutes(
 
   router.patch("/:id/deactivate", auth, roleMiddleware("admin"), censusController.deactivateRecord);
 
+  router.patch("/:id/submit", auth, roleMiddleware("admin", "censista"), censusController.submitRecord);
+  router.patch("/:id/review", auth, roleMiddleware("admin"), censusController.reviewRecord);
+  router.patch("/:id/approve", auth, roleMiddleware("admin"), censusController.approveRecord);
+  router.patch("/:id/reject", auth, roleMiddleware("admin"), censusController.rejectRecord);
+
   return router;
 }

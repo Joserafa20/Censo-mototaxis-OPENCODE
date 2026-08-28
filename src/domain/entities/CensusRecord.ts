@@ -16,13 +16,28 @@
  * - GPS coordinates are optional but must be in valid range.
  */
 
-export type CensusRecordStatus = "active" | "inactive" | "suspended";
+export type CensusRecordStatus =
+  | "active"
+  | "inactive"
+  | "suspended"
+  | "PENDIENTE"
+  | "EN_PROCESO"
+  | "COMPLETADO"
+  | "EN_REVISION"
+  | "APROBADO"
+  | "RECHAZADO";
 export type OperationType = "station" | "independent";
 
 export const VALID_STATUS_TRANSITIONS: Record<CensusRecordStatus, CensusRecordStatus[]> = {
   active: ["inactive", "suspended"],
   suspended: ["active", "inactive"],
   inactive: [],
+  PENDIENTE: ["EN_PROCESO"],
+  EN_PROCESO: ["COMPLETADO"],
+  COMPLETADO: ["EN_REVISION"],
+  EN_REVISION: ["APROBADO", "RECHAZADO"],
+  APROBADO: [],
+  RECHAZADO: ["EN_PROCESO"],
 };
 
 export interface CensusRecord {
@@ -46,6 +61,9 @@ export interface CensusRecord {
   longitude: number | null;
   status: CensusRecordStatus;
   inactiveReason: string | null;
+  validationReason: string | null;
+  validatedBy: string | null;
+  validatedAt: Date | null;
   createdByUserId: string;
   isActive: boolean;
   createdAt: Date;
@@ -83,6 +101,9 @@ export function createCensusRecord(
     longitude: null,
     status: "active",
     inactiveReason: null,
+    validationReason: null,
+    validatedBy: null,
+    validatedAt: null,
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),

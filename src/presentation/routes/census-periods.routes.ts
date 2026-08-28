@@ -9,6 +9,7 @@
  */
 
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import type { CensusPeriodController } from "../controllers/CensusPeriodController.js";
 import type { ITokenService } from "../../domain/services/ITokenService.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
@@ -66,6 +67,9 @@ export function createCensusPeriodRoutes(
     roleMiddleware("admin"),
     censusPeriodController.changeStatus
   );
+
+  const closeLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
+  router.post("/:id/close", auth, roleMiddleware("admin"), closeLimiter, censusPeriodController.close);
 
   return router;
 }

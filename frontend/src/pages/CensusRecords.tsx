@@ -1,30 +1,97 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+
+interface CensusValidation {
+  id: string;
+  censusRecordId?: string;
+  fromStatus: string;
+  toStatus: string;
+  actorUserId: string;
+  actorRole: string;
+  reason?: string | null;
+  createdAt: string;
+}
 
 interface CensusRecord {
   id: string | number;
   cedula?: string;
   documentNumber?: string;
+  mototaxiCedula?: string;
   fullName?: string;
   nombreCompleto?: string;
   name?: string;
+  mototaxiFirstName?: string;
+  mototaxiLastName?: string;
   plate?: string;
   placa?: string;
   motoPlaca?: string;
+  motorcyclePlate?: string;
   station?: { name: string } | string | null;
   stationName?: string;
   estado?: string;
   status?: string;
+  periodId?: string;
+  periodStatus?: string;
+  validationReason?: string | null;
+  inactiveReason?: string | null;
+  reason?: string | null;
+  validations?: CensusValidation[];
   [key: string]: unknown;
 }
 
+const STATUS_STYLES: Record<string, string> = {
+  PENDIENTE: 'bg-gray-100 text-gray-700 border border-gray-200',
+  EN_PROCESO: 'bg-blue-100 text-blue-800 border border-blue-200',
+  COMPLETADO: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+  EN_REVISION: 'bg-orange-100 text-orange-800 border border-orange-200',
+  APROBADO: 'bg-green-100 text-green-800 border border-green-200',
+  RECHAZADO: 'bg-red-100 text-red-800 border border-red-200',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDIENTE: 'Pendiente',
+  EN_PROCESO: 'En proceso',
+  COMPLETADO: 'Completado',
+  EN_REVISION: 'En revisión',
+  APROBADO: 'Aprobado',
+  RECHAZADO: 'Rechazado',
+};
+
+function normalizeStatus(s: string | undefined): string {
+  if (!s) return '';
+  return s.toUpperCase();
+}
+
+function getStatusBadge(statusRaw: string | undefined) {
+  const n = normalizeStatus(statusRaw);
+  const style = STATUS_STYLES[n] || 'bg-gray-100 text-gray-700 border border-gray-200';
+  const label = STATUS_LABELS[n] || statusRaw || '—';
+  return { n, style, label };
+}
+
 export default function CensusRecords() {
+  const { user } = useAuth();
+  const role = user?.role || '';
+  const isAdmin = role === 'admin';
+  const isCensista = role === 'censista';
+
   const [records, setRecords] = useState<CensusRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [periodClosed, setPeriodClosed] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Detail / validations
+  const [selected, setSelected] = useState<CensusRecord | null>(null);
+  const [detail, setDetail] = useState<CensusRecord | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // Reject modal
+  const [rejectModal, setRejectModal] = useState<{ id: string | number | null; reason: string }>({ id: null, reason: '' });
 
   const [form, setForm] = useState({
     cedula: '',
@@ -58,11 +125,36 @@ export default function CensusRecords() {
       setError('');
       const res = await api.get('/census-records');
       const data = res.data.records || res.data.data || res.data.censusRecords || res.data || [];
-      setRecords(Array.isArray(data) ? data : []);
+      const list: CensusRecord[] = Array.isArray(data) ? data : [];
+      setRecords(list);
+      // Detect if any period is closed -> check periodStatus field if present
+      // Also try to infer via period closed flag from records metadata
+      const hasClosed = list.some((r) => {
+        const ps = String((r as any).periodStatus || (r as any).period_status || '').toUpperCase();
+        return ps === 'CERRADO' || ps === 'FINALIZADO';
+      });
+      if (hasClosed) setPeriodClosed(true);
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Error al cargar registros');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Try to fetch periods to determine if current period is closed (for disabling actions globally)
+  const fetchPeriodStatus = async () => {
+    try {
+      const res = await api.get('/census-periods', { params: { pageSize: 1 } });
+      const periods = res.data.periods || res.data.data || [];
+      if (Array.isArray(periods) && periods.length > 0) {
+        // Check if any active period is actually CERRADO? We'll check all
+        const closedExists = periods.some((p: any) => String(p.status).toUpperCase() === 'CERRADO' || String(p.status).toUpperCase() === 'FINALIZADO');
+        // Only set global closed if we can identify the period of records - skip global flag unless needed
+        // Instead we track per-record; leave periodClosed as hasClosed logic
+        void closedExists;
+      }
+    } catch {
+      // censista may not have access to /census-periods (admin only) -> ignore
     }
   };
 
@@ -87,6 +179,7 @@ export default function CensusRecords() {
 
   useEffect(() => {
     fetchRecords();
+    fetchPeriodStatus();
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -119,7 +212,6 @@ export default function CensusRecords() {
         observaciones: form.observaciones || undefined,
         stationId: form.stationId ? Number(form.stationId) : undefined,
       };
-      // Also send alternative keys for backend compatibility
       payload.documentNumber = payload.cedula;
       payload.fullName = payload.nombreCompleto;
       payload.placa = payload.motoPlaca;
@@ -141,9 +233,15 @@ export default function CensusRecords() {
     }
   };
 
-  const getCedula = (r: CensusRecord) => (r.cedula || r.documentNumber || '—') as string;
-  const getNombre = (r: CensusRecord) => (r.nombreCompleto || r.fullName || r.name || '—') as string;
-  const getPlaca = (r: CensusRecord) => (r.motoPlaca || r.placa || r.plate || '—') as string;
+  const getCedula = (r: CensusRecord) => (r.cedula || r.documentNumber || r.mototaxiCedula || '—') as string;
+  const getNombre = (r: CensusRecord) => {
+    if (r.nombreCompleto) return r.nombreCompleto as string;
+    if (r.fullName) return r.fullName as string;
+    if (r.name) return r.name as string;
+    if (r.mototaxiFirstName || r.mototaxiLastName) return `${r.mototaxiFirstName || ''} ${r.mototaxiLastName || ''}`.trim() || '—';
+    return '—';
+  };
+  const getPlaca = (r: CensusRecord) => (r.motoPlaca || r.placa || r.plate || r.motorcyclePlate || '—') as string;
   const getEstacion = (r: CensusRecord) => {
     if (r.station && typeof r.station === 'object' && 'name' in r.station) return (r.station as { name: string }).name;
     if (typeof r.station === 'string') return r.station;
@@ -151,6 +249,137 @@ export default function CensusRecords() {
     return '—';
   };
   const getEstado = (r: CensusRecord) => (r.estado || r.status || '—') as string;
+  const getValidationReason = (r: CensusRecord) => (r.validationReason || r.inactiveReason || r.reason || '') as string;
+
+  const isPeriodClosed = (r: CensusRecord) => {
+    if (periodClosed) return true;
+    const ps = String((r as any).periodStatus || (r as any).period_status || '').toUpperCase();
+    return ps === 'CERRADO' || ps === 'FINALIZADO';
+  };
+
+  const handleAction = async (id: string | number, action: 'submit' | 'review' | 'approve' | 'reject', reason?: string) => {
+    const key = `${id}-${action}`;
+    setActionLoading(key);
+    setError('');
+    try {
+      if (action === 'reject') {
+        await api.patch(`/census-records/${id}/reject`, { reason });
+      } else {
+        await api.patch(`/census-records/${id}/${action}`);
+      }
+      await fetchRecords();
+      // refresh detail if open
+      if (selected && String(selected.id) === String(id)) {
+        fetchDetail(String(id));
+      }
+    } catch (err: any) {
+      const data = err.response?.data;
+      const msg = data?.message || data?.error || err.message || 'Error en la acción';
+      const code = data?.code ? ` (${data.code})` : '';
+      setError(`${msg}${code}`);
+    } finally {
+      setActionLoading(null);
+      if (action === 'reject') setRejectModal({ id: null, reason: '' });
+    }
+  };
+
+  const fetchDetail = async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await api.get(`/census-records/${id}`);
+      const d = res.data.record || res.data.data || res.data;
+      setDetail(d);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cargar detalle');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openDetail = (r: CensusRecord) => {
+    setSelected(r);
+    setDetail(null);
+    fetchDetail(String(r.id));
+  };
+
+  const closeDetail = () => {
+    setSelected(null);
+    setDetail(null);
+  };
+
+  const renderActions = (r: CensusRecord) => {
+    const status = normalizeStatus(getEstado(r));
+    const closed = isPeriodClosed(r);
+    const id = r.id;
+    const reason = getValidationReason(r);
+
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {/* Ver detalle */}
+        <button
+          onClick={() => openDetail(r)}
+          className="text-gray-600 hover:text-gray-900 font-medium text-xs px-2 py-1 border border-gray-200 rounded-lg hover:bg-gray-50"
+        >
+          Ver
+        </button>
+
+        {/* Censista: Enviar si PENDIENTE/EN_PROCESO */}
+        {(isCensista || isAdmin) && (status === 'PENDIENTE' || status === 'EN_PROCESO') && (
+          <button
+            disabled={closed || actionLoading === `${id}-submit`}
+            onClick={() => handleAction(id, 'submit')}
+            className="text-xs font-medium px-3 py-1 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={closed ? 'Período cerrado' : 'Enviar a completado'}
+          >
+            {actionLoading === `${id}-submit` ? 'Enviando...' : 'Enviar'}
+          </button>
+        )}
+
+        {/* Censista/Admin ve motivo rechazo si RECHAZADO */}
+        {status === 'RECHAZADO' && reason && (
+          <span className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full max-w-[180px] truncate" title={reason}>
+            Rechazo: {reason}
+          </span>
+        )}
+
+        {/* Admin: Revisar si COMPLETADO */}
+        {isAdmin && status === 'COMPLETADO' && (
+          <button
+            disabled={closed || actionLoading === `${id}-review`}
+            onClick={() => handleAction(id, 'review')}
+            className="text-xs font-medium px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={closed ? 'Período cerrado' : 'Pasar a revisión'}
+          >
+            {actionLoading === `${id}-review` ? '...' : 'Revisar'}
+          </button>
+        )}
+
+        {/* Admin: Aprobar/Rechazar si EN_REVISION */}
+        {isAdmin && status === 'EN_REVISION' && (
+          <>
+            <button
+              disabled={closed || actionLoading === `${id}-approve`}
+              onClick={() => handleAction(id, 'approve')}
+              className="text-xs font-medium px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={closed ? 'Período cerrado' : 'Aprobar registro'}
+            >
+              {actionLoading === `${id}-approve` ? '...' : 'Aprobar'}
+            </button>
+            <button
+              disabled={closed || actionLoading === `${id}-reject`}
+              onClick={() => setRejectModal({ id, reason: '' })}
+              className="text-xs font-medium px-3 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={closed ? 'Período cerrado' : 'Rechazar registro'}
+            >
+              Rechazar
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const validationsToShow: CensusValidation[] | undefined = detail?.validations || (selected as any)?.validations;
 
   return (
     <div className="space-y-6">
@@ -206,6 +435,12 @@ export default function CensusRecords() {
         </div>
       )}
 
+      {periodClosed && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+          El período está cerrado — las acciones de validación están deshabilitadas.
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
@@ -235,25 +470,141 @@ export default function CensusRecords() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {records.map((r) => (
-                  <tr key={String(r.id)} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{getCedula(r)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{getNombre(r)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPlaca(r)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getEstacion(r)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">{getEstado(r)}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button className="text-gray-600 hover:text-gray-900 font-medium">Ver</button>
-                    </td>
-                  </tr>
-                ))}
+                {records.map((r) => {
+                  const badge = getStatusBadge(getEstado(r));
+                  return (
+                    <tr key={String(r.id)} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{getCedula(r)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{getNombre(r)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPlaca(r)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getEstacion(r)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.style}`}>{badge.label}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {renderActions(r)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Detail drawer / modal with validations timeline */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-xl flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Detalle del registro #{String(selected.id)}</h3>
+              <button onClick={closeDetail} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {detailLoading ? (
+                <div className="text-center text-gray-500 py-8">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mb-2"></div>
+                  <p className="text-sm">Cargando detalle...</p>
+                </div>
+              ) : (
+                <>
+                  {detail && (
+                    <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div><span className="text-gray-500">Cédula:</span> <span className="font-medium text-gray-900">{getCedula(detail)}</span></div>
+                      <div><span className="text-gray-500">Nombre:</span> <span className="font-medium text-gray-900">{getNombre(detail)}</span></div>
+                      <div><span className="text-gray-500">Placa:</span> <span className="font-medium text-gray-900">{getPlaca(detail)}</span></div>
+                      <div><span className="text-gray-500">Estado:</span> {(() => { const b = getStatusBadge(getEstado(detail)); return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.style}`}>{b.label}</span>; })()}</div>
+                      {getValidationReason(detail) && (
+                        <div className="col-span-2"><span className="text-gray-500">Motivo rechazo:</span> <span className="text-red-600">{getValidationReason(detail)}</span></div>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Historial de validaciones</h4>
+                    {!validationsToShow || validationsToShow.length === 0 ? (
+                      <p className="text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl p-4 text-center">Sin historial disponible</p>
+                    ) : (
+                      <div className="space-y-0 relative">
+                        <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gray-200"></div>
+                        {validationsToShow.map((v, idx) => {
+                          const badge = getStatusBadge(v.toStatus);
+                          return (
+                            <div key={v.id || idx} className="relative flex gap-3 pb-4 last:pb-0">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 bg-white ${badge.style.includes('green') ? 'border-green-300' : badge.style.includes('red') ? 'border-red-300' : badge.style.includes('blue') ? 'border-blue-300' : badge.style.includes('orange') ? 'border-orange-300' : badge.style.includes('yellow') ? 'border-yellow-300' : 'border-gray-300'}`}>
+                                <span className="w-2 h-2 rounded-full bg-current"></span>
+                              </div>
+                              <div className="flex-1 bg-white border border-gray-200 rounded-xl p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-gray-500">{v.fromStatus || '—'}</span>
+                                    <span className="text-gray-400">→</span>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.style}`}>{badge.label}</span>
+                                  </div>
+                                  <span className="text-xs text-gray-400">{v.createdAt ? new Date(v.createdAt).toLocaleString('es-PA') : ''}</span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Por <span className="font-medium text-gray-700">{v.actorRole}</span> <span className="text-gray-400">({v.actorUserId?.slice(0, 8)})</span>
+                                </div>
+                                {v.reason && (
+                                  <div className="text-xs text-red-600 mt-1 bg-red-50 border border-red-100 rounded-lg px-2 py-1">Motivo: {v.reason}</div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button onClick={closeDetail} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Cerrar</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject reason modal */}
+      {rejectModal.id !== null && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Rechazar registro</h3>
+              <p className="text-sm text-gray-500 mt-1">Ingresa el motivo del rechazo (10-500 caracteres)</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <textarea
+                value={rejectModal.reason}
+                onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
+                rows={4}
+                placeholder="Motivo del rechazo..."
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none text-sm"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRejectModal({ id: null, reason: '' })}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={!rejectModal.reason.trim() || rejectModal.reason.trim().length < 10}
+                  onClick={() => handleAction(rejectModal.id!, 'reject', rejectModal.reason.trim())}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                >
+                  Confirmar rechazo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Modal */}
       {showModal && (
@@ -271,7 +622,6 @@ export default function CensusRecords() {
             </div>
 
             <form onSubmit={handleCreate} className="p-6 space-y-6">
-              {/* Datos personales */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 border-b border-gray-100 pb-2">Datos personales</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -322,7 +672,6 @@ export default function CensusRecords() {
                 </div>
               </div>
 
-              {/* Datos moto */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 border-b border-gray-100 pb-2">Datos de la moto</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -357,7 +706,6 @@ export default function CensusRecords() {
                 </div>
               </div>
 
-              {/* Operación */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 border-b border-gray-100 pb-2">Operación</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

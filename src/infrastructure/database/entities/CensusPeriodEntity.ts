@@ -34,6 +34,12 @@ export class CensusPeriodEntity {
   @Column({ type: "varchar", length: 20, default: "INACTIVO" })
   status!: CensusPeriodStatus;
 
+  @Column({ type: "datetime", nullable: true })
+  closedAt!: Date | null;
+
+  @Column({ type: "uuid", nullable: true })
+  closedByUserId!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

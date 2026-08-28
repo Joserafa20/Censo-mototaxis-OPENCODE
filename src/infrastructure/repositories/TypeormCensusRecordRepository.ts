@@ -62,6 +62,35 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
     return this.repo.count({ where: { periodId, isActive: true } });
   }
 
+  async countByStatus(periodId: string, statuses: string[]): Promise<number> {
+    if (!statuses.length) return 0;
+    const qb = this.repo.createQueryBuilder("r");
+    qb.where("r.periodId = :periodId", { periodId });
+    qb.andWhere("r.status IN (:...statuses)", { statuses });
+    return qb.getCount();
+  }
+
+  async countByStatusGrouped(periodId: string): Promise<Record<string, number>> {
+    const rows: any[] = await this.repo
+      .createQueryBuilder("r")
+      .select("r.status", "status")
+      .addSelect("COUNT(*)", "cnt")
+      .where("r.periodId = :periodId", { periodId })
+      .groupBy("r.status")
+      .getRawMany();
+    const map: Record<string, number> = {};
+    for (const row of rows) map[row.status] = Number(row.cnt);
+    return map;
+  }
+
+  async updateStatus(id: string, status: string, extra?: any): Promise<void> {
+    const update: any = { status };
+    if (extra?.validationReason !== undefined) update.validationReason = extra.validationReason;
+    if (extra?.validatedBy !== undefined) update.validatedBy = extra.validatedBy;
+    if (extra?.validatedAt !== undefined) update.validatedAt = extra.validatedAt;
+    await this.repo.update(id, update);
+  }
+
   private applyFilters(qb: any, filters?: CensusRecordListFilters): void {
     if (!filters) return;
     if (filters.periodId) qb.andWhere("r.periodId = :periodId", { periodId: filters.periodId });
@@ -96,8 +125,11 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
       motorcycleYear: e.motorcycleYear,
       latitude: e.latitude !== null && e.latitude !== undefined ? Number(e.latitude) : null,
       longitude: e.longitude !== null && e.longitude !== undefined ? Number(e.longitude) : null,
-      status: e.status as "active" | "inactive" | "suspended",
+      status: e.status as any,
       inactiveReason: e.inactiveReason,
+      validationReason: (e as any).validationReason ?? null,
+      validatedBy: (e as any).validatedBy ?? null,
+      validatedAt: (e as any).validatedAt ?? null,
       createdByUserId: e.createdByUserId,
       isActive: e.isActive,
       createdAt: e.createdAt,

@@ -42,6 +42,11 @@ import { CreateCensusRecordUseCase } from "./application/use-cases/CreateCensusR
 import { ListCensusRecordsUseCase } from "./application/use-cases/ListCensusRecordsUseCase.js";
 import { SearchCensusRecordsUseCase } from "./application/use-cases/SearchCensusRecordsUseCase.js";
 import { DeactivateCensusRecordUseCase } from "./application/use-cases/DeactivateCensusRecordUseCase.js";
+import { SubmitCensusRecordUseCase } from "./application/use-cases/SubmitCensusRecordUseCase.js";
+import { ReviewCensusRecordUseCase } from "./application/use-cases/ReviewCensusRecordUseCase.js";
+import { ApproveCensusRecordUseCase } from "./application/use-cases/ApproveCensusRecordUseCase.js";
+import { RejectCensusRecordUseCase } from "./application/use-cases/RejectCensusRecordUseCase.js";
+import { CloseCensusPeriodUseCase } from "./application/use-cases/CloseCensusPeriodUseCase.js";
 import { GeographyController } from "./presentation/controllers/GeographyController.js";
 import { StationController } from "./presentation/controllers/StationController.js";
 import { CensusController } from "./presentation/controllers/CensusController.js";
@@ -55,6 +60,8 @@ import { ExportReportUseCase } from "./application/use-cases/ExportReportUseCase
 import { TypeormReportRepository } from "./infrastructure/repositories/TypeormReportRepository.js";
 import { InMemoryReportCache } from "./infrastructure/cache/InMemoryReportCache.js";
 import { CsvExporter } from "./infrastructure/export/CsvExporter.js";
+import { TypeormValidationRepository } from "./infrastructure/repositories/TypeormValidationRepository.js";
+import { CensusValidationEntity } from "./infrastructure/database/entities/CensusValidationEntity.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
 import type { IRefreshTokenRepository } from "./domain/repositories/IRefreshTokenRepository.js";
@@ -94,6 +101,7 @@ export interface AppDependencies {
   tokenService: ITokenService;
   secureTokenGenerator: ISecureTokenGenerator;
   dataSource?: any;
+  validationRepo?: any;
 }
 
 export function createApp(deps: AppDependencies): Express {
@@ -218,6 +226,16 @@ export function createApp(deps: AppDependencies): Express {
     deps.stationAgentRepo
   );
 
+  // ── Validation infra ─────────────────────────────────────────────
+  let validationRepo: any = (deps as any).validationRepo ?? null;
+  if (!validationRepo && deps.dataSource) {
+    try {
+      const vRepo = deps.dataSource.getRepository(CensusValidationEntity);
+      validationRepo = new TypeormValidationRepository(vRepo);
+    } catch { validationRepo = { save: async () => {}, findByRecordId: async () => [], findByPeriodId: async () => [] }; }
+  }
+  if (!validationRepo) validationRepo = { save: async () => {}, findByRecordId: async () => [], findByPeriodId: async () => [] };
+
   // ── Census record use cases ──────────────────────────────────────
   const createCensusRecordUseCase = new CreateCensusRecordUseCase(
     deps.censusRecordRepo,
@@ -233,6 +251,11 @@ export function createApp(deps: AppDependencies): Express {
     deps.censusRecordRepo,
     deps.censusAuditRepo
   );
+  const submitUseCase = new SubmitCensusRecordUseCase(deps.censusRecordRepo, deps.censusPeriodRepo, deps.corregimientoRepo, deps.neighborhoodRepo, validationRepo);
+  const reviewUseCase = new ReviewCensusRecordUseCase(deps.censusRecordRepo, deps.censusPeriodRepo, validationRepo);
+  const approveUseCase = new ApproveCensusRecordUseCase(deps.censusRecordRepo, deps.censusPeriodRepo, validationRepo);
+  const rejectUseCase = new RejectCensusRecordUseCase(deps.censusRecordRepo, deps.censusPeriodRepo, validationRepo);
+  const closePeriodUseCase = new CloseCensusPeriodUseCase(deps.censusPeriodRepo, deps.censusRecordRepo);
 
   // ── Controllers ──────────────────────────────────────────────────
   const authController = new AuthController(
@@ -257,7 +280,8 @@ export function createApp(deps: AppDependencies): Express {
     updateCensusPeriodUseCase,
     changeCensusPeriodStatusUseCase,
     listCensusPeriodsUseCase,
-    deps.censusPeriodRepo
+    deps.censusPeriodRepo,
+    closePeriodUseCase
   );
 
   const geographyController = new GeographyController(
@@ -284,7 +308,12 @@ export function createApp(deps: AppDependencies): Express {
     listCensusRecordsUseCase,
     searchCensusRecordsUseCase,
     deactivateCensusRecordUseCase,
-    deps.censusRecordRepo
+    deps.censusRecordRepo,
+    submitUseCase,
+    reviewUseCase,
+    approveUseCase,
+    rejectUseCase,
+    validationRepo
   );
 
   // ── Report use cases ───────────────────────────────────────────────
