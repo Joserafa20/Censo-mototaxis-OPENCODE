@@ -14,6 +14,7 @@ import { RefreshTokenEntity } from "./entities/RefreshTokenEntity.js";
 import { LoginAuditEntity } from "./entities/LoginAuditEntity.js";
 import { PasswordResetTokenEntity } from "./entities/PasswordResetTokenEntity.js";
 import { UserAuditLogEntity } from "./entities/UserAuditLogEntity.js";
+import { CensusPeriodEntity } from "./entities/CensusPeriodEntity.js";
 
 const dataSourceOptions: DataSourceOptions = {
   type: "postgres",
@@ -30,6 +31,7 @@ const dataSourceOptions: DataSourceOptions = {
     LoginAuditEntity,
     PasswordResetTokenEntity,
     UserAuditLogEntity,
+    CensusPeriodEntity,
   ],
   migrations: ["./dist/infrastructure/database/migrations/*.js"],
 };

@@ -11,3 +11,9 @@ export {
   UserAuditAction,
   createUserAuditLog,
 } from "./UserAuditLog.js";
+export {
+  CensusPeriod,
+  CensusPeriodStatus,
+  canTransition,
+  createCensusPeriod,
+} from "./CensusPeriod.js";

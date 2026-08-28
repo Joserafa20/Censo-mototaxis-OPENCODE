@@ -7,3 +7,7 @@ export { DeactivateUserUseCase, DeactivateUserInput } from "./DeactivateUserUseC
 export { ReactivateUserUseCase, ReactivateUserInput } from "./ReactivateUserUseCase.js";
 export { ManualPasswordResetUseCase, ManualPasswordResetInput, ManualPasswordResetOutput } from "./ManualPasswordResetUseCase.js";
 export { ListUsersUseCase, ListUsersInput, ListUsersOutput } from "./ListUsersUseCase.js";
+export { CreateCensusPeriodUseCase, CreateCensusPeriodInput, CreateCensusPeriodOutput } from "./CreateCensusPeriodUseCase.js";
+export { UpdateCensusPeriodUseCase, UpdateCensusPeriodInput } from "./UpdateCensusPeriodUseCase.js";
+export { ChangeCensusPeriodStatusUseCase, ChangeCensusPeriodStatusInput } from "./ChangeCensusPeriodStatusUseCase.js";
+export { ListCensusPeriodsUseCase, ListCensusPeriodsInput, ListCensusPeriodsOutput } from "./ListCensusPeriodsUseCase.js";

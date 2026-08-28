@@ -3,3 +3,4 @@ export { TypeormRefreshTokenRepository } from "./TypeormRefreshTokenRepository.j
 export { TypeormLoginAuditRepository } from "./TypeormLoginAuditRepository.js";
 export { TypeormPasswordResetRepository } from "./TypeormPasswordResetRepository.js";
 export { TypeormUserAuditRepository } from "./TypeormUserAuditRepository.js";
+export { TypeormCensusPeriodRepository } from "./TypeormCensusPeriodRepository.js";
