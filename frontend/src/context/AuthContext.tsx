@@ -36,18 +36,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
-    const { token: newToken, user: userData } = response.data;
+    const response = await api.post('/auth/login', { credential: email, password });
+    const { accessToken, refreshToken } = response.data;
 
-    localStorage.setItem('token', newToken);
+    // Decode JWT to get user info (role, id)
+    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+    const userData = { id: payload.id, email: email, role: payload.role, name: email.split('@')[0] };
+
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
 
-    setToken(newToken);
+    setToken(accessToken);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
