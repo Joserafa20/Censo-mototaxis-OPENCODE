@@ -5,7 +5,7 @@
  * Maps between domain StationAgent entities and TypeORM StationAgentEntity records.
  */
 
-import { type Repository } from "typeorm";
+import { type Repository, IsNull } from "typeorm";
 import type { IStationAgentRepository } from "../../domain/repositories/IStationAgentRepository.js";
 import type { StationAgent } from "../../domain/entities/StationAgent.js";
 import { StationAgentEntity } from "../database/entities/StationAgentEntity.js";
@@ -21,16 +21,16 @@ export class TypeormStationAgentRepository implements IStationAgentRepository {
   async findActiveByCensusRecordId(censusRecordId: string): Promise<StationAgent | null> {
     const entity = await this.repo.findOneBy({
       censusRecordId,
-      unassignedAt: null,
-    });
+      unassignedAt: IsNull(),
+    } as any);
     return entity ? this.toDomain(entity) : null;
   }
 
   async findActiveByStationId(stationId: string): Promise<StationAgent[]> {
     const entities = await this.repo.findBy({
       stationId,
-      unassignedAt: null,
-    });
+      unassignedAt: IsNull(),
+    } as any);
     return entities.map(this.toDomain);
   }
 
@@ -63,15 +63,15 @@ export class TypeormStationAgentRepository implements IStationAgentRepository {
   async countActiveByStationId(stationId: string): Promise<number> {
     return this.repo.countBy({
       stationId,
-      unassignedAt: null,
-    });
+      unassignedAt: IsNull(),
+    } as any);
   }
 
   async hasActiveAssignment(censusRecordId: string): Promise<boolean> {
     const count = await this.repo.countBy({
       censusRecordId,
-      unassignedAt: null,
-    });
+      unassignedAt: IsNull(),
+    } as any);
     return count > 0;
   }
 

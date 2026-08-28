@@ -28,3 +28,15 @@ export {
 } from "./GeographyAudit.js";
 export { Station, createStation } from "./Station.js";
 export { StationAgent, createStationAgent } from "./StationAgent.js";
+export {
+  CensusRecord,
+  CensusRecordStatus,
+  OperationType,
+  VALID_STATUS_TRANSITIONS,
+  createCensusRecord,
+} from "./CensusRecord.js";
+export {
+  CensusAuditEntry,
+  CensusAuditAction,
+  createCensusAuditEntry,
+} from "./CensusAudit.js";

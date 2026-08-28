@@ -20,6 +20,10 @@ import { TypeormMunicipalityRepository } from "./infrastructure/repositories/Typ
 import { TypeormCorregimientoRepository } from "./infrastructure/repositories/TypeormCorregimientoRepository.js";
 import { TypeormNeighborhoodRepository } from "./infrastructure/repositories/TypeormNeighborhoodRepository.js";
 import { TypeormGeographyAuditRepository } from "./infrastructure/repositories/TypeormGeographyAuditRepository.js";
+import { TypeormStationRepository } from "./infrastructure/repositories/TypeormStationRepository.js";
+import { TypeormStationAgentRepository } from "./infrastructure/repositories/TypeormStationAgentRepository.js";
+import { TypeormCensusRecordRepository } from "./infrastructure/repositories/TypeormCensusRecordRepository.js";
+import { TypeormCensusAuditRepository } from "./infrastructure/repositories/TypeormCensusAuditRepository.js";
 
 async function main(): Promise<void> {
   // Load environment
@@ -81,6 +85,18 @@ async function main(): Promise<void> {
   const geographyAuditRepo = new TypeormGeographyAuditRepository(
     AppDataSource.getRepository("GeographyAuditEntity") as any
   );
+  const stationRepo = new TypeormStationRepository(
+    AppDataSource.getRepository("StationEntity") as any
+  );
+  const stationAgentRepo = new TypeormStationAgentRepository(
+    AppDataSource.getRepository("StationAgentEntity") as any
+  );
+  const censusRecordRepo = new TypeormCensusRecordRepository(
+    AppDataSource.getRepository("CensusRecordEntity") as any
+  );
+  const censusAuditRepo = new TypeormCensusAuditRepository(
+    AppDataSource.getRepository("CensusAuditEntity") as any
+  );
 
   // Create and start app with ALL dependencies
   const app = createApp({
@@ -94,6 +110,10 @@ async function main(): Promise<void> {
     corregimientoRepo,
     neighborhoodRepo,
     geographyAuditRepo,
+    stationRepo,
+    stationAgentRepo,
+    censusRecordRepo,
+    censusAuditRepo,
     passwordHasher,
     tokenService,
     secureTokenGenerator,

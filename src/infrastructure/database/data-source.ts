@@ -26,6 +26,8 @@ import { NeighborhoodEntity } from "./entities/NeighborhoodEntity.js";
 import { GeographyAuditEntity } from "./entities/GeographyAuditEntity.js";
 import { StationEntity } from "./entities/StationEntity.js";
 import { StationAgentEntity } from "./entities/StationAgentEntity.js";
+import { CensusRecordEntity } from "./entities/CensusRecordEntity.js";
+import { CensusAuditEntity } from "./entities/CensusAuditEntity.js";
 
 const entities = [
   UserEntity,
@@ -40,6 +42,8 @@ const entities = [
   GeographyAuditEntity,
   StationEntity,
   StationAgentEntity,
+  CensusRecordEntity,
+  CensusAuditEntity,
 ];
 
 let dataSourceOptions: DataSourceOptions;

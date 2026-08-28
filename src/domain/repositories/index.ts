@@ -10,3 +10,5 @@ export { INeighborhoodRepository } from "./INeighborhoodRepository.js";
 export { IGeographyAuditRepository } from "./IGeographyAuditRepository.js";
 export { IStationRepository } from "./IStationRepository.js";
 export { IStationAgentRepository } from "./IStationAgentRepository.js";
+export { ICensusRecordRepository, CensusRecordListFilters, CensusRecordListOptions } from "./ICensusRecordRepository.js";
+export { ICensusAuditRepository } from "./ICensusAuditRepository.js";

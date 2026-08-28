@@ -38,10 +38,16 @@ import { ListStationsUseCase } from "./application/use-cases/ListStationsUseCase
 import { DeactivateStationUseCase } from "./application/use-cases/DeactivateStationUseCase.js";
 import { AssignAgentUseCase } from "./application/use-cases/AssignAgentUseCase.js";
 import { UnassignAgentUseCase } from "./application/use-cases/UnassignAgentUseCase.js";
+import { CreateCensusRecordUseCase } from "./application/use-cases/CreateCensusRecordUseCase.js";
+import { ListCensusRecordsUseCase } from "./application/use-cases/ListCensusRecordsUseCase.js";
+import { SearchCensusRecordsUseCase } from "./application/use-cases/SearchCensusRecordsUseCase.js";
+import { DeactivateCensusRecordUseCase } from "./application/use-cases/DeactivateCensusRecordUseCase.js";
 import { GeographyController } from "./presentation/controllers/GeographyController.js";
 import { StationController } from "./presentation/controllers/StationController.js";
+import { CensusController } from "./presentation/controllers/CensusController.js";
 import { createGeographyRoutes } from "./presentation/routes/geography.routes.js";
 import { createStationRoutes } from "./presentation/routes/stations.routes.js";
+import { createCensusRecordRoutes } from "./presentation/routes/census-records.routes.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
 import type { IRefreshTokenRepository } from "./domain/repositories/IRefreshTokenRepository.js";
@@ -55,6 +61,8 @@ import type { INeighborhoodRepository } from "./domain/repositories/INeighborhoo
 import type { IGeographyAuditRepository } from "./domain/repositories/IGeographyAuditRepository.js";
 import type { IStationRepository } from "./domain/repositories/IStationRepository.js";
 import type { IStationAgentRepository } from "./domain/repositories/IStationAgentRepository.js";
+import type { ICensusRecordRepository } from "./domain/repositories/ICensusRecordRepository.js";
+import type { ICensusAuditRepository } from "./domain/repositories/ICensusAuditRepository.js";
 import type { IPasswordHasher } from "./domain/services/IPasswordHasher.js";
 import type { ITokenService } from "./domain/services/ITokenService.js";
 import type { ISecureTokenGenerator } from "./domain/services/ISecureTokenGenerator.js";
@@ -73,6 +81,8 @@ export interface AppDependencies {
   geographyAuditRepo: IGeographyAuditRepository;
   stationRepo: IStationRepository;
   stationAgentRepo: IStationAgentRepository;
+  censusRecordRepo: ICensusRecordRepository;
+  censusAuditRepo: ICensusAuditRepository;
   passwordHasher: IPasswordHasher;
   tokenService: ITokenService;
   secureTokenGenerator: ISecureTokenGenerator;
@@ -200,6 +210,22 @@ export function createApp(deps: AppDependencies): Express {
     deps.stationAgentRepo
   );
 
+  // ── Census record use cases ──────────────────────────────────────
+  const createCensusRecordUseCase = new CreateCensusRecordUseCase(
+    deps.censusRecordRepo,
+    deps.censusPeriodRepo,
+    deps.corregimientoRepo,
+    deps.neighborhoodRepo,
+    deps.stationRepo,
+    deps.censusAuditRepo
+  );
+  const listCensusRecordsUseCase = new ListCensusRecordsUseCase(deps.censusRecordRepo);
+  const searchCensusRecordsUseCase = new SearchCensusRecordsUseCase(deps.censusRecordRepo);
+  const deactivateCensusRecordUseCase = new DeactivateCensusRecordUseCase(
+    deps.censusRecordRepo,
+    deps.censusAuditRepo
+  );
+
   // ── Controllers ──────────────────────────────────────────────────
   const authController = new AuthController(
     loginUseCase,
@@ -245,12 +271,21 @@ export function createApp(deps: AppDependencies): Express {
     deps.stationRepo
   );
 
+  const censusController = new CensusController(
+    createCensusRecordUseCase,
+    listCensusRecordsUseCase,
+    searchCensusRecordsUseCase,
+    deactivateCensusRecordUseCase,
+    deps.censusRecordRepo
+  );
+
   // ── Routes ───────────────────────────────────────────────────────
   const authRoutes = createAuthRoutes(authController, deps.tokenService);
   const userRoutes = createUserRoutes(userController, deps.tokenService);
   const censusPeriodRoutes = createCensusPeriodRoutes(censusPeriodController, deps.tokenService);
   const geographyRoutes = createGeographyRoutes(geographyController, deps.tokenService);
   const stationRoutes = createStationRoutes(stationController, deps.tokenService);
+  const censusRecordRoutes = createCensusRecordRoutes(censusController, deps.tokenService);
 
   // Assemble API router
   const apiRouter = Router();
@@ -259,6 +294,7 @@ export function createApp(deps: AppDependencies): Express {
   apiRouter.use("/census-periods", censusPeriodRoutes);
   apiRouter.use("/geography", geographyRoutes);
   apiRouter.use("/stations", stationRoutes);
+  apiRouter.use("/census-records", censusRecordRoutes);
 
   // Assemble server
   const app = createServer(apiRouter);

@@ -5,7 +5,7 @@
  * Maps between domain CensusPeriod entities and TypeORM CensusPeriodEntity records.
  */
 
-import { type Repository, MoreThanOrLessThanOrEqual, LessThanOrEqual, MoreThanOrEqual } from "typeorm";
+import { type Repository } from "typeorm";
 import type { ICensusPeriodRepository, CensusPeriodListFilters, CensusPeriodListOptions } from "../../domain/repositories/ICensusPeriodRepository.js";
 import type { CensusPeriod } from "../../domain/entities/CensusPeriod.js";
 import { CensusPeriodEntity } from "../database/entities/CensusPeriodEntity.js";

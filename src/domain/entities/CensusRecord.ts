@@ -19,6 +19,12 @@
 export type CensusRecordStatus = "active" | "inactive" | "suspended";
 export type OperationType = "station" | "independent";
 
+export const VALID_STATUS_TRANSITIONS: Record<CensusRecordStatus, CensusRecordStatus[]> = {
+  active: ["inactive", "suspended"],
+  suspended: ["active", "inactive"],
+  inactive: [],
+};
+
 export interface CensusRecord {
   id: string;
   periodId: string;

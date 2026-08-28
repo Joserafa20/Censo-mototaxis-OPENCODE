@@ -1,0 +1,136 @@
+import type { Repository } from "typeorm";
+import type {
+  ICensusRecordRepository,
+  CensusRecordListFilters,
+  CensusRecordListOptions,
+} from "../../domain/repositories/ICensusRecordRepository.js";
+import type { CensusRecord } from "../../domain/entities/CensusRecord.js";
+import { CensusRecordEntity } from "../database/entities/CensusRecordEntity.js";
+
+export class TypeormCensusRecordRepository implements ICensusRecordRepository {
+  constructor(private readonly repo: Repository<CensusRecordEntity>) {}
+
+  async findById(id: string): Promise<CensusRecord | null> {
+    const e = await this.repo.findOneBy({ id });
+    return e ? this.toDomain(e) : null;
+  }
+
+  async findByCedula(cedula: string): Promise<CensusRecord | null> {
+    const e = await this.repo.findOneBy({ mototaxiCedula: cedula });
+    return e ? this.toDomain(e) : null;
+  }
+
+  async findByPlate(plate: string): Promise<CensusRecord | null> {
+    const e = await this.repo.findOneBy({ motorcyclePlate: plate });
+    return e ? this.toDomain(e) : null;
+  }
+
+  async findAll(options?: CensusRecordListOptions): Promise<CensusRecord[]> {
+    const qb = this.repo.createQueryBuilder("r");
+    this.applyFilters(qb, options?.filters);
+    qb.orderBy("r.createdAt", "DESC");
+    if (options?.limit) qb.take(options.limit);
+    if (options?.offset) qb.skip(options.offset);
+    const entities = await qb.getMany();
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async countAll(filters?: CensusRecordListFilters): Promise<number> {
+    const qb = this.repo.createQueryBuilder("r");
+    this.applyFilters(qb, filters);
+    return qb.getCount();
+  }
+
+  async save(record: CensusRecord): Promise<void> {
+    const entity = this.toEntity(record);
+    await this.repo.save(entity);
+  }
+
+  async deactivateById(id: string, reason: string): Promise<void> {
+    await this.repo.update(id, {
+      status: "inactive",
+      isActive: false,
+      inactiveReason: reason,
+    });
+  }
+
+  async countActiveByStationId(stationId: string): Promise<number> {
+    return this.repo.count({ where: { stationId, isActive: true } });
+  }
+
+  async countActiveByPeriodId(periodId: string): Promise<number> {
+    return this.repo.count({ where: { periodId, isActive: true } });
+  }
+
+  private applyFilters(qb: any, filters?: CensusRecordListFilters): void {
+    if (!filters) return;
+    if (filters.periodId) qb.andWhere("r.periodId = :periodId", { periodId: filters.periodId });
+    if (filters.corregimientoId) qb.andWhere("r.corregimientoId = :corregimientoId", { corregimientoId: filters.corregimientoId });
+    if (filters.neighborhoodId) qb.andWhere("r.neighborhoodId = :neighborhoodId", { neighborhoodId: filters.neighborhoodId });
+    if (filters.stationId) qb.andWhere("r.stationId = :stationId", { stationId: filters.stationId });
+    if (filters.operationType) qb.andWhere("r.operationType = :operationType", { operationType: filters.operationType });
+    if (filters.status) qb.andWhere("r.status = :status", { status: filters.status });
+    if (filters.createdByUserId) qb.andWhere("r.createdByUserId = :createdByUserId", { createdByUserId: filters.createdByUserId });
+    if (filters.searchTerm) {
+      qb.andWhere("(r.mototaxiCedula LIKE :term OR r.motorcyclePlate LIKE :term)", { term: `%${filters.searchTerm}%` });
+    }
+  }
+
+  private toDomain(e: CensusRecordEntity): CensusRecord {
+    return {
+      id: e.id,
+      periodId: e.periodId,
+      corregimientoId: e.corregimientoId,
+      neighborhoodId: e.neighborhoodId,
+      stationId: e.stationId,
+      operationType: e.operationType as "station" | "independent",
+      mototaxiCedula: e.mototaxiCedula,
+      mototaxiFirstName: e.mototaxiFirstName,
+      mototaxiLastName: e.mototaxiLastName,
+      mototaxiPhone: e.mototaxiPhone,
+      mototaxiAddress: e.mototaxiAddress,
+      motorcyclePlate: e.motorcyclePlate,
+      motorcycleBrand: e.motorcycleBrand,
+      motorcycleModel: e.motorcycleModel,
+      motorcycleColor: e.motorcycleColor,
+      motorcycleYear: e.motorcycleYear,
+      latitude: e.latitude !== null && e.latitude !== undefined ? Number(e.latitude) : null,
+      longitude: e.longitude !== null && e.longitude !== undefined ? Number(e.longitude) : null,
+      status: e.status as "active" | "inactive" | "suspended",
+      inactiveReason: e.inactiveReason,
+      createdByUserId: e.createdByUserId,
+      isActive: e.isActive,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+    };
+  }
+
+  private toEntity(r: CensusRecord): CensusRecordEntity {
+    const e = new CensusRecordEntity();
+    e.id = r.id;
+    e.periodId = r.periodId;
+    e.corregimientoId = r.corregimientoId;
+    e.neighborhoodId = r.neighborhoodId;
+    e.stationId = r.stationId;
+    e.operationType = r.operationType;
+    e.mototaxiCedula = r.mototaxiCedula;
+    e.mototaxiFirstName = r.mototaxiFirstName;
+    e.mototaxiLastName = r.mototaxiLastName;
+    e.mototaxiPhone = r.mototaxiPhone;
+    e.mototaxiAddress = r.mototaxiAddress;
+    e.motorcyclePlate = r.motorcyclePlate;
+    e.motorcycleBrand = r.motorcycleBrand;
+    e.motorcycleModel = r.motorcycleModel;
+    e.motorcycleColor = r.motorcycleColor;
+    e.motorcycleYear = r.motorcycleYear;
+    e.latitude = r.latitude;
+    e.longitude = r.longitude;
+    e.status = r.status;
+    e.inactiveReason = r.inactiveReason;
+    e.createdByUserId = r.createdByUserId;
+    e.isActive = r.isActive;
+    e.createdAt = r.createdAt;
+    e.updatedAt = r.updatedAt;
+    return e;
+  }
+}

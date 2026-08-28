@@ -10,3 +10,5 @@ export { NeighborhoodEntity } from "./NeighborhoodEntity.js";
 export { GeographyAuditEntity } from "./GeographyAuditEntity.js";
 export { StationEntity } from "./StationEntity.js";
 export { StationAgentEntity } from "./StationAgentEntity.js";
+export { CensusRecordEntity } from "./CensusRecordEntity.js";
+export { CensusAuditEntity } from "./CensusAuditEntity.js";

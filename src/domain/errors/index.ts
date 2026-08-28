@@ -37,3 +37,15 @@ export {
   InactiveStationError,
   AgentNotAssignedError,
 } from "./StationErrors.js";
+export {
+  DuplicateCedulaError,
+  DuplicatePlateError,
+  CensusRecordNotFoundError,
+  PeriodNotActiveError,
+  InactiveCorregimientoError,
+  InactiveNeighborhoodError,
+  StationRequiredError,
+  StationNotAllowedForIndependentError,
+  InvalidCoordinatesError as CensusInvalidCoordinatesError,
+  CensusRecordAlreadyInactiveError,
+} from "./CensusErrors.js";

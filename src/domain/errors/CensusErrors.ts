@@ -84,3 +84,21 @@ export class InactiveStationError extends Error {
     this.name = "InactiveStationError";
   }
 }
+
+export class InvalidCoordinatesError extends Error {
+  readonly statusCode = 422;
+
+  constructor(message = "Coordenadas GPS inválidas") {
+    super(message);
+    this.name = "InvalidCoordinatesError";
+  }
+}
+
+export class CensusRecordAlreadyInactiveError extends Error {
+  readonly statusCode = 400;
+
+  constructor(message = "El registro ya está inactivo") {
+    super(message);
+    this.name = "CensusRecordAlreadyInactiveError";
+  }
+}

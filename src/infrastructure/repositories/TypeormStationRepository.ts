@@ -5,7 +5,7 @@
  * Maps between domain Station entities and TypeORM StationEntity records.
  */
 
-import { type Repository, ILike } from "typeorm";
+import { type Repository, ILike, IsNull } from "typeorm";
 import type {
   IStationRepository,
   StationListFilters,
@@ -39,8 +39,8 @@ export class TypeormStationRepository implements IStationRepository {
     const entity = await this.repo.findOneBy({
       name: ILike(name),
       locationType: "urban",
-      corregimientoId: null,
-    });
+      corregimientoId: IsNull(),
+    } as any);
     return entity ? this.toDomain(entity) : null;
   }
 

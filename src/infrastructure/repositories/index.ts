@@ -10,3 +10,5 @@ export { TypeormNeighborhoodRepository } from "./TypeormNeighborhoodRepository.j
 export { TypeormGeographyAuditRepository } from "./TypeormGeographyAuditRepository.js";
 export { TypeormStationRepository } from "./TypeormStationRepository.js";
 export { TypeormStationAgentRepository } from "./TypeormStationAgentRepository.js";
+export { TypeormCensusRecordRepository } from "./TypeormCensusRecordRepository.js";
+export { TypeormCensusAuditRepository } from "./TypeormCensusAuditRepository.js";
