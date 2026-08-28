@@ -55,11 +55,6 @@ export default function Users() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Periods from './pages/Periods';
+import Stations from './pages/Stations';
+import CensusRecords from './pages/CensusRecords';
 
 function App() {
   return (
@@ -25,8 +27,10 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="users" element={<Users />} />
-            <Route path="periods" element={<Periods />} />
+            <Route path="users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+            <Route path="periods" element={<ProtectedRoute><Periods /></ProtectedRoute>} />
+            <Route path="stations" element={<Stations />} />
+            <Route path="census" element={<CensusRecords />} />
           </Route>
 
           {/* Redirect root to dashboard */}
