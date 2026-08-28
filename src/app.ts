@@ -48,6 +48,13 @@ import { CensusController } from "./presentation/controllers/CensusController.js
 import { createGeographyRoutes } from "./presentation/routes/geography.routes.js";
 import { createStationRoutes } from "./presentation/routes/stations.routes.js";
 import { createCensusRecordRoutes } from "./presentation/routes/census-records.routes.js";
+import { createReportRoutes } from "./presentation/routes/report.routes.js";
+import { ReportController } from "./presentation/controllers/ReportController.js";
+import { GetReportSummaryUseCase } from "./application/use-cases/GetReportSummaryUseCase.js";
+import { ExportReportUseCase } from "./application/use-cases/ExportReportUseCase.js";
+import { TypeormReportRepository } from "./infrastructure/repositories/TypeormReportRepository.js";
+import { InMemoryReportCache } from "./infrastructure/cache/InMemoryReportCache.js";
+import { CsvExporter } from "./infrastructure/export/CsvExporter.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
 import type { IRefreshTokenRepository } from "./domain/repositories/IRefreshTokenRepository.js";
@@ -86,6 +93,7 @@ export interface AppDependencies {
   passwordHasher: IPasswordHasher;
   tokenService: ITokenService;
   secureTokenGenerator: ISecureTokenGenerator;
+  dataSource?: any;
 }
 
 export function createApp(deps: AppDependencies): Express {
@@ -279,6 +287,18 @@ export function createApp(deps: AppDependencies): Express {
     deps.censusRecordRepo
   );
 
+  // ── Report use cases ───────────────────────────────────────────────
+  let reportRoutes: any = null;
+  if (deps.dataSource) {
+    const reportRepo = new TypeormReportRepository(deps.dataSource);
+    const reportCache = new InMemoryReportCache(60_000);
+    const csvExporter = new CsvExporter();
+    const getSummaryUseCase = new GetReportSummaryUseCase(reportRepo, reportCache, deps.dataSource);
+    const exportUseCase = new ExportReportUseCase(reportRepo, deps.dataSource, csvExporter);
+    const reportController = new ReportController(getSummaryUseCase, exportUseCase);
+    reportRoutes = createReportRoutes(reportController, deps.tokenService);
+  }
+
   // ── Routes ───────────────────────────────────────────────────────
   const authRoutes = createAuthRoutes(authController, deps.tokenService);
   const userRoutes = createUserRoutes(userController, deps.tokenService);
@@ -295,6 +315,7 @@ export function createApp(deps: AppDependencies): Express {
   apiRouter.use("/geography", geographyRoutes);
   apiRouter.use("/stations", stationRoutes);
   apiRouter.use("/census-records", censusRecordRoutes);
+  if (reportRoutes) apiRouter.use("/reports", reportRoutes);
 
   // Assemble server
   const app = createServer(apiRouter);

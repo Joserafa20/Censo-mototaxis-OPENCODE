@@ -117,6 +117,7 @@ async function main(): Promise<void> {
     passwordHasher,
     tokenService,
     secureTokenGenerator,
+    dataSource: AppDataSource,
   });
 
   app.listen(env.port, () => {
