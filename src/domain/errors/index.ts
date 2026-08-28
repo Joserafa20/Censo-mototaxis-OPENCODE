@@ -30,3 +30,10 @@ export {
   CorregimientoNotFoundError,
   NeighborhoodNotFoundError,
 } from "./GeographyErrors.js";
+export {
+  DuplicateStationNameError,
+  StationNotFoundError,
+  AgentAlreadyAssignedError,
+  InactiveStationError,
+  AgentNotAssignedError,
+} from "./StationErrors.js";

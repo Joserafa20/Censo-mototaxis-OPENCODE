@@ -8,3 +8,5 @@ export { IMunicipalityRepository } from "./IMunicipalityRepository.js";
 export { ICorregimientoRepository } from "./ICorregimientoRepository.js";
 export { INeighborhoodRepository } from "./INeighborhoodRepository.js";
 export { IGeographyAuditRepository } from "./IGeographyAuditRepository.js";
+export { IStationRepository } from "./IStationRepository.js";
+export { IStationAgentRepository } from "./IStationAgentRepository.js";

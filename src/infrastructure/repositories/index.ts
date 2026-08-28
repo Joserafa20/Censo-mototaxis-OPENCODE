@@ -8,3 +8,5 @@ export { TypeormMunicipalityRepository } from "./TypeormMunicipalityRepository.j
 export { TypeormCorregimientoRepository } from "./TypeormCorregimientoRepository.js";
 export { TypeormNeighborhoodRepository } from "./TypeormNeighborhoodRepository.js";
 export { TypeormGeographyAuditRepository } from "./TypeormGeographyAuditRepository.js";
+export { TypeormStationRepository } from "./TypeormStationRepository.js";
+export { TypeormStationAgentRepository } from "./TypeormStationAgentRepository.js";
