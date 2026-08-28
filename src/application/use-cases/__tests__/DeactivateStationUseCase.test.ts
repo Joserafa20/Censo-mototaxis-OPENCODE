@@ -16,7 +16,7 @@ import { StationNotFoundError } from "../../../domain/errors/StationErrors.js";
 function makeStationRepo(): IStationRepository {
   return {
     findById: jest.fn().mockResolvedValue(null),
-    findByNameAndCorregimiento: jest.fn().mockResolvedValue(null),
+    findByNameAndLocation: jest.fn().mockResolvedValue(null),
     findAll: jest.fn().mockResolvedValue([]),
     save: jest.fn().mockResolvedValue(undefined),
     deactivateById: jest.fn().mockResolvedValue(undefined),
@@ -48,6 +48,7 @@ describe("DeactivateStationUseCase", () => {
   const activeStation = createStation({
     id: "st-1",
     name: "Estación Terminal",
+    locationType: "rural",
     corregimientoId: "corr-1",
   });
 
@@ -78,6 +79,7 @@ describe("DeactivateStationUseCase", () => {
     const inactiveStation = createStation({
       id: "st-1",
       name: "Estación Terminal",
+      locationType: "rural",
       corregimientoId: "corr-1",
       isActive: false,
     });

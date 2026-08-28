@@ -19,7 +19,7 @@ import {
 function makeStationRepo(): IStationRepository {
   return {
     findById: jest.fn().mockResolvedValue(null),
-    findByNameAndCorregimiento: jest.fn().mockResolvedValue(null),
+    findByNameAndLocation: jest.fn().mockResolvedValue(null),
     findAll: jest.fn().mockResolvedValue([]),
     save: jest.fn().mockResolvedValue(undefined),
     deactivateById: jest.fn().mockResolvedValue(undefined),
@@ -51,6 +51,7 @@ describe("UnassignAgentUseCase", () => {
   const activeStation = createStation({
     id: "st-1",
     name: "Estación Terminal",
+    locationType: "rural",
     corregimientoId: "corr-1",
   });
 

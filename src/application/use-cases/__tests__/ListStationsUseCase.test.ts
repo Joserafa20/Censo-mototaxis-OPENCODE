@@ -15,7 +15,7 @@ import { createStation } from "../../../domain/entities/Station.js";
 function makeStationRepo(): IStationRepository {
   return {
     findById: jest.fn().mockResolvedValue(null),
-    findByNameAndCorregimiento: jest.fn().mockResolvedValue(null),
+    findByNameAndLocation: jest.fn().mockResolvedValue(null),
     findAll: jest.fn().mockResolvedValue([]),
     save: jest.fn().mockResolvedValue(undefined),
     deactivateById: jest.fn().mockResolvedValue(undefined),
@@ -45,9 +45,9 @@ describe("ListStationsUseCase", () => {
   let useCase: ListStationsUseCase;
 
   const stations = [
-    createStation({ id: "st-1", name: "Estación Terminal", corregimientoId: "corr-1" }),
-    createStation({ id: "st-2", name: "Estación Centro", corregimientoId: "corr-1" }),
-    createStation({ id: "st-3", name: "Estación Norte", corregimientoId: "corr-1" }),
+    createStation({ id: "st-1", name: "Estación Terminal", locationType: "rural", corregimientoId: "corr-1" }),
+    createStation({ id: "st-2", name: "Estación Centro", locationType: "urban" }),
+    createStation({ id: "st-3", name: "Estación Norte", locationType: "rural", corregimientoId: "corr-1" }),
   ];
 
   beforeEach(() => {
@@ -98,6 +98,16 @@ describe("ListStationsUseCase", () => {
     expect(stationRepo.findAll).toHaveBeenCalledWith({
       isActive: true,
       searchTerm: "Terminal",
+    });
+  });
+
+  it("should filter by locationType", async () => {
+    await useCase.execute({
+      filters: { locationType: "urban" },
+    });
+
+    expect(stationRepo.findAll).toHaveBeenCalledWith({
+      locationType: "urban",
     });
   });
 

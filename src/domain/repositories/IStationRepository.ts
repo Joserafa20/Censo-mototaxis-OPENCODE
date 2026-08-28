@@ -5,9 +5,10 @@
  * Infrastructure adapters implement this; use cases depend on it.
  */
 
-import type { Station } from "../entities/Station.js";
+import type { Station, StationLocationType } from "../entities/Station.js";
 
 export interface StationListFilters {
+  locationType?: StationLocationType;
   corregimientoId?: string;
   neighborhoodId?: string;
   isActive?: boolean;
@@ -16,9 +17,10 @@ export interface StationListFilters {
 
 export interface IStationRepository {
   findById(id: string): Promise<Station | null>;
-  findByNameAndCorregimiento(
+  findByNameAndLocation(
     name: string,
-    corregimientoId: string
+    locationType: StationLocationType,
+    corregimientoId?: string | null
   ): Promise<Station | null>;
   findAll(filters?: StationListFilters): Promise<Station[]>;
   save(station: Station): Promise<void>;

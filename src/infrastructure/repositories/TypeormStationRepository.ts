@@ -10,7 +10,7 @@ import type {
   IStationRepository,
   StationListFilters,
 } from "../../domain/repositories/IStationRepository.js";
-import type { Station } from "../../domain/entities/Station.js";
+import type { Station, StationLocationType } from "../../domain/entities/Station.js";
 import { StationEntity } from "../database/entities/StationEntity.js";
 
 export class TypeormStationRepository implements IStationRepository {
@@ -21,13 +21,25 @@ export class TypeormStationRepository implements IStationRepository {
     return entity ? this.toDomain(entity) : null;
   }
 
-  async findByNameAndCorregimiento(
+  async findByNameAndLocation(
     name: string,
-    corregimientoId: string
+    locationType: StationLocationType,
+    corregimientoId?: string | null
   ): Promise<Station | null> {
+    if (locationType === "rural" && corregimientoId) {
+      const entity = await this.repo.findOneBy({
+        name: ILike(name),
+        locationType: "rural",
+        corregimientoId,
+      });
+      return entity ? this.toDomain(entity) : null;
+    }
+
+    // Urban: unique name in urban area (no corregimiento)
     const entity = await this.repo.findOneBy({
       name: ILike(name),
-      corregimientoId,
+      locationType: "urban",
+      corregimientoId: null,
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -36,7 +48,11 @@ export class TypeormStationRepository implements IStationRepository {
     const qb = this.repo.createQueryBuilder("station");
 
     if (filters) {
-      const { corregimientoId, neighborhoodId, isActive, searchTerm } = filters;
+      const { locationType, corregimientoId, neighborhoodId, isActive, searchTerm } = filters;
+
+      if (locationType !== undefined) {
+        qb.andWhere("station.locationType = :locationType", { locationType });
+      }
 
       if (corregimientoId !== undefined) {
         qb.andWhere("station.corregimientoId = :corregimientoId", { corregimientoId });
@@ -83,6 +99,7 @@ export class TypeormStationRepository implements IStationRepository {
     return {
       id: entity.id,
       name: entity.name,
+      locationType: entity.locationType as StationLocationType,
       corregimientoId: entity.corregimientoId,
       neighborhoodId: entity.neighborhoodId,
       latitude: entity.latitude,
@@ -97,6 +114,7 @@ export class TypeormStationRepository implements IStationRepository {
     const entity = new StationEntity();
     entity.id = station.id;
     entity.name = station.name;
+    entity.locationType = station.locationType;
     entity.corregimientoId = station.corregimientoId;
     entity.neighborhoodId = station.neighborhoodId;
     entity.latitude = station.latitude;

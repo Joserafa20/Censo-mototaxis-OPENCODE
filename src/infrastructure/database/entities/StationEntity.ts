@@ -11,11 +11,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  Index,
 } from "typeorm";
 
 @Entity("stations")
-@Index(["name", "corregimientoId"], { unique: true })
 export class StationEntity {
   @PrimaryColumn("uuid")
   id!: string;
@@ -23,8 +21,11 @@ export class StationEntity {
   @Column({ type: "varchar", length: 150 })
   name!: string;
 
-  @Column({ type: "uuid" })
-  corregimientoId!: string;
+  @Column({ type: "varchar", length: 10, default: "rural" })
+  locationType!: string; // "urban" | "rural"
+
+  @Column({ type: "uuid", nullable: true })
+  corregimientoId!: string | null;
 
   @Column({ type: "uuid", nullable: true })
   neighborhoodId!: string | null;

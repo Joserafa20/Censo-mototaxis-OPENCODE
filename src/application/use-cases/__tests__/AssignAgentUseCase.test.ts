@@ -20,7 +20,7 @@ import {
 function makeStationRepo(): IStationRepository {
   return {
     findById: jest.fn().mockResolvedValue(null),
-    findByNameAndCorregimiento: jest.fn().mockResolvedValue(null),
+    findByNameAndLocation: jest.fn().mockResolvedValue(null),
     findAll: jest.fn().mockResolvedValue([]),
     save: jest.fn().mockResolvedValue(undefined),
     deactivateById: jest.fn().mockResolvedValue(undefined),
@@ -52,6 +52,7 @@ describe("AssignAgentUseCase", () => {
   const activeStation = createStation({
     id: "st-1",
     name: "Estación Terminal",
+    locationType: "rural",
     corregimientoId: "corr-1",
   });
 
@@ -81,6 +82,7 @@ describe("AssignAgentUseCase", () => {
     const inactiveStation = createStation({
       id: "st-1",
       name: "Estación Terminal",
+      locationType: "rural",
       corregimientoId: "corr-1",
       isActive: false,
     });
@@ -105,7 +107,7 @@ describe("AssignAgentUseCase", () => {
 
   // ── Successful assignment ────────────────────────────────────────
 
-  it("should create assignment with correct fields", async () => {
+  it("should create assignment successfully", async () => {
     const result = await useCase.execute(baseInput);
 
     expect(result).toHaveProperty("assignmentId");
@@ -117,13 +119,19 @@ describe("AssignAgentUseCase", () => {
     );
   });
 
-  it("should create assignment with unassignedAt as null", async () => {
+  it("should set assignedAt to current date", async () => {
+    const before = new Date();
     await useCase.execute(baseInput);
+    const after = new Date();
 
     expect(stationAgentRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        unassignedAt: null,
+        assignedAt: expect.any(Date),
       })
     );
+
+    const saved = (stationAgentRepo.save as jest.Mock).mock.calls[0][0];
+    expect(saved.assignedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(saved.assignedAt.getTime()).toBeLessThanOrEqual(after.getTime());
   });
 });

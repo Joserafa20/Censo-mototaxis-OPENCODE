@@ -20,6 +20,7 @@ import type { DeactivateStationUseCase } from "../../application/use-cases/Deact
 import type { AssignAgentUseCase } from "../../application/use-cases/AssignAgentUseCase.js";
 import type { UnassignAgentUseCase } from "../../application/use-cases/UnassignAgentUseCase.js";
 import type { IStationRepository } from "../../domain/repositories/IStationRepository.js";
+import type { StationLocationType } from "../../domain/entities/Station.js";
 
 export class StationController {
   constructor(
@@ -37,7 +38,7 @@ export class StationController {
    */
   createStation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { name, corregimientoId, neighborhoodId, latitude, longitude } = req.body;
+      const { name, locationType, corregimientoId, neighborhoodId, latitude, longitude } = req.body;
 
       if (!name) {
         res.status(400).json({
@@ -47,16 +48,25 @@ export class StationController {
         return;
       }
 
-      if (!corregimientoId) {
+      if (!locationType) {
         res.status(400).json({
           error: "Bad Request",
-          message: "corregimientoId is required",
+          message: "locationType is required (urban or rural)",
+        });
+        return;
+      }
+
+      if (locationType !== "urban" && locationType !== "rural") {
+        res.status(400).json({
+          error: "Bad Request",
+          message: "locationType must be 'urban' or 'rural'",
         });
         return;
       }
 
       const result = await this.createStationUseCase.execute({
         name,
+        locationType: locationType as StationLocationType,
         corregimientoId,
         neighborhoodId,
         latitude,
@@ -75,10 +85,11 @@ export class StationController {
    */
   listStations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { isActive, corregimientoId, neighborhoodId, searchTerm, page, pageSize } = req.query;
+      const { locationType, isActive, corregimientoId, neighborhoodId, searchTerm, page, pageSize } = req.query;
 
       const result = await this.listStationsUseCase.execute({
         filters: {
+          locationType: locationType as StationLocationType | undefined,
           isActive: isActive !== undefined ? isActive === "true" : undefined,
           corregimientoId: corregimientoId as string | undefined,
           neighborhoodId: neighborhoodId as string | undefined,
