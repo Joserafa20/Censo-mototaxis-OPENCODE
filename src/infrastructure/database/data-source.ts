@@ -15,6 +15,10 @@ import { LoginAuditEntity } from "./entities/LoginAuditEntity.js";
 import { PasswordResetTokenEntity } from "./entities/PasswordResetTokenEntity.js";
 import { UserAuditLogEntity } from "./entities/UserAuditLogEntity.js";
 import { CensusPeriodEntity } from "./entities/CensusPeriodEntity.js";
+import { MunicipalityEntity } from "./entities/MunicipalityEntity.js";
+import { CorregimientoEntity } from "./entities/CorregimientoEntity.js";
+import { NeighborhoodEntity } from "./entities/NeighborhoodEntity.js";
+import { GeographyAuditEntity } from "./entities/GeographyAuditEntity.js";
 
 const dataSourceOptions: DataSourceOptions = {
   type: "postgres",
@@ -32,6 +36,10 @@ const dataSourceOptions: DataSourceOptions = {
     PasswordResetTokenEntity,
     UserAuditLogEntity,
     CensusPeriodEntity,
+    MunicipalityEntity,
+    CorregimientoEntity,
+    NeighborhoodEntity,
+    GeographyAuditEntity,
   ],
   migrations: ["./dist/infrastructure/database/migrations/*.js"],
 };

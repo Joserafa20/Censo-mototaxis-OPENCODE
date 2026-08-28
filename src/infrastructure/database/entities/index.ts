@@ -4,3 +4,7 @@ export { LoginAuditEntity } from "./LoginAuditEntity.js";
 export { PasswordResetTokenEntity } from "./PasswordResetTokenEntity.js";
 export { UserAuditLogEntity } from "./UserAuditLogEntity.js";
 export { CensusPeriodEntity } from "./CensusPeriodEntity.js";
+export { MunicipalityEntity } from "./MunicipalityEntity.js";
+export { CorregimientoEntity } from "./CorregimientoEntity.js";
+export { NeighborhoodEntity } from "./NeighborhoodEntity.js";
+export { GeographyAuditEntity } from "./GeographyAuditEntity.js";

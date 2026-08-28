@@ -20,3 +20,13 @@ export {
   CensusPeriodNameAlreadyExistsError,
   CannotEditFinalizedPeriodError,
 } from "./CensusPeriodErrors.js";
+export {
+  DuplicateGeographyNameError,
+  InactiveParentError,
+  ReactivateRequiresActiveParentError,
+  InvalidCoordinatesError,
+  GeographyNotFoundError,
+  MunicipalityNotFoundError,
+  CorregimientoNotFoundError,
+  NeighborhoodNotFoundError,
+} from "./GeographyErrors.js";

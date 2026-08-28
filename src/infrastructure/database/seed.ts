@@ -1,5 +1,5 @@
 /**
- * Seed script: Creates the default admin user
+ * Seed script: Creates the default admin user and root municipality
  *
  * Run with: npx tsx src/infrastructure/database/seed.ts
  * Requires DATABASE_URL and ADMIN_PASSWORD env vars.
@@ -27,30 +27,52 @@ async function seed(dataSource: DataSource): Promise<void> {
     );
 
     if (existingAdmin.length > 0) {
-      console.log("Admin user already exists — skipping seed.");
-      return;
+      console.log("Admin user already exists — skipping admin seed.");
+    } else {
+      const adminId = uuidv4();
+      const adminEmail = process.env.ADMIN_EMAIL ?? "admin@mototaxis.com";
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (!adminPassword) {
+        throw new Error("ADMIN_PASSWORD environment variable is required for seeding");
+      }
+
+      const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
+
+      await queryRunner.query(
+        `
+        INSERT INTO users (id, email, passwordHash, role, isActive, failedLoginAttempts, lockedUntil, createdAt, updatedAt)
+        VALUES ($1, $2, $3, $4, TRUE, 0, NULL, NOW(), NOW())
+        `,
+        [adminId, adminEmail, passwordHash, "admin"]
+      );
+
+      console.log(`Admin user created: ${adminEmail} (id: ${adminId})`);
     }
 
-    const adminId = uuidv4();
-    const adminEmail = process.env.ADMIN_EMAIL ?? "admin@mototaxis.com";
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    if (!adminPassword) {
-      throw new Error("ADMIN_PASSWORD environment variable is required for seeding");
-    }
-
-    const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
-
-    await queryRunner.query(
-      `
-      INSERT INTO users (id, email, passwordHash, role, isActive, failedLoginAttempts, lockedUntil, createdAt, updatedAt)
-      VALUES ($1, $2, $3, $4, TRUE, 0, NULL, NOW(), NOW())
-      `,
-      [adminId, adminEmail, passwordHash, "admin"]
+    // Check if root municipality already exists
+    const existingMunicipality = await queryRunner.query(
+      `SELECT id FROM municipalities WHERE name = $1 LIMIT 1`,
+      ["Sabanalarga"]
     );
 
+    if (existingMunicipality.length > 0) {
+      console.log("Root municipality already exists — skipping municipality seed.");
+    } else {
+      const municipalityId = uuidv4();
+
+      await queryRunner.query(
+        `
+        INSERT INTO municipalities (id, name, department, isActive, createdAt, updatedAt)
+        VALUES ($1, $2, $3, TRUE, NOW(), NOW())
+        `,
+        [municipalityId, "Sabanalarga", "Atlántico"]
+      );
+
+      console.log(`Root municipality created: Sabanalarga, Atlántico (id: ${municipalityId})`);
+    }
+
     await queryRunner.commitTransaction();
-    console.log(`Admin user created: ${adminEmail} (id: ${adminId})`);
   } catch (error) {
     await queryRunner.rollbackTransaction();
     throw error;

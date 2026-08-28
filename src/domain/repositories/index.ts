@@ -4,3 +4,7 @@ export { ILoginAuditRepository } from "./ILoginAuditRepository.js";
 export { IPasswordResetRepository } from "./IPasswordResetRepository.js";
 export { IUserAuditRepository } from "./IUserAuditRepository.js";
 export { ICensusPeriodRepository } from "./ICensusPeriodRepository.js";
+export { IMunicipalityRepository } from "./IMunicipalityRepository.js";
+export { ICorregimientoRepository } from "./ICorregimientoRepository.js";
+export { INeighborhoodRepository } from "./INeighborhoodRepository.js";
+export { IGeographyAuditRepository } from "./IGeographyAuditRepository.js";

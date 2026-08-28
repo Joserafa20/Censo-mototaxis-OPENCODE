@@ -17,3 +17,12 @@ export {
   canTransition,
   createCensusPeriod,
 } from "./CensusPeriod.js";
+export { Municipality, createMunicipality } from "./Municipality.js";
+export { Corregimiento, createCorregimiento } from "./Corregimiento.js";
+export { Neighborhood, createNeighborhood } from "./Neighborhood.js";
+export {
+  GeographyAuditEntry,
+  GeographyEntityType,
+  GeographyAction,
+  createGeographyAuditEntry,
+} from "./GeographyAudit.js";

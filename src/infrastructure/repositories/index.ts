@@ -4,3 +4,7 @@ export { TypeormLoginAuditRepository } from "./TypeormLoginAuditRepository.js";
 export { TypeormPasswordResetRepository } from "./TypeormPasswordResetRepository.js";
 export { TypeormUserAuditRepository } from "./TypeormUserAuditRepository.js";
 export { TypeormCensusPeriodRepository } from "./TypeormCensusPeriodRepository.js";
+export { TypeormMunicipalityRepository } from "./TypeormMunicipalityRepository.js";
+export { TypeormCorregimientoRepository } from "./TypeormCorregimientoRepository.js";
+export { TypeormNeighborhoodRepository } from "./TypeormNeighborhoodRepository.js";
+export { TypeormGeographyAuditRepository } from "./TypeormGeographyAuditRepository.js";

@@ -27,6 +27,14 @@ import { CreateCensusPeriodUseCase } from "./application/use-cases/CreateCensusP
 import { UpdateCensusPeriodUseCase } from "./application/use-cases/UpdateCensusPeriodUseCase.js";
 import { ChangeCensusPeriodStatusUseCase } from "./application/use-cases/ChangeCensusPeriodStatusUseCase.js";
 import { ListCensusPeriodsUseCase } from "./application/use-cases/ListCensusPeriodsUseCase.js";
+import { CreateCorregimientoUseCase } from "./application/use-cases/CreateCorregimientoUseCase.js";
+import { CreateNeighborhoodUseCase } from "./application/use-cases/CreateNeighborhoodUseCase.js";
+import { DeactivateCorregimientoUseCase } from "./application/use-cases/DeactivateCorregimientoUseCase.js";
+import { ReactivateNeighborhoodUseCase } from "./application/use-cases/ReactivateNeighborhoodUseCase.js";
+import { GetGeographyTreeUseCase } from "./application/use-cases/GetGeographyTreeUseCase.js";
+import { ListCorregimientosUseCase } from "./application/use-cases/ListCorregimientosUseCase.js";
+import { GeographyController } from "./presentation/controllers/GeographyController.js";
+import { createGeographyRoutes } from "./presentation/routes/geography.routes.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
 import type { IRefreshTokenRepository } from "./domain/repositories/IRefreshTokenRepository.js";
@@ -34,6 +42,10 @@ import type { ILoginAuditRepository } from "./domain/repositories/ILoginAuditRep
 import type { IUserAuditRepository } from "./domain/repositories/IUserAuditRepository.js";
 import type { IPasswordResetRepository } from "./domain/repositories/IPasswordResetRepository.js";
 import type { ICensusPeriodRepository } from "./domain/repositories/ICensusPeriodRepository.js";
+import type { IMunicipalityRepository } from "./domain/repositories/IMunicipalityRepository.js";
+import type { ICorregimientoRepository } from "./domain/repositories/ICorregimientoRepository.js";
+import type { INeighborhoodRepository } from "./domain/repositories/INeighborhoodRepository.js";
+import type { IGeographyAuditRepository } from "./domain/repositories/IGeographyAuditRepository.js";
 import type { IPasswordHasher } from "./domain/services/IPasswordHasher.js";
 import type { ITokenService } from "./domain/services/ITokenService.js";
 import type { ISecureTokenGenerator } from "./domain/services/ISecureTokenGenerator.js";
@@ -46,6 +58,10 @@ export interface AppDependencies {
   userAuditRepo: IUserAuditRepository;
   passwordResetRepo: IPasswordResetRepository;
   censusPeriodRepo: ICensusPeriodRepository;
+  municipalityRepo: IMunicipalityRepository;
+  corregimientoRepo: ICorregimientoRepository;
+  neighborhoodRepo: INeighborhoodRepository;
+  geographyAuditRepo: IGeographyAuditRepository;
   passwordHasher: IPasswordHasher;
   tokenService: ITokenService;
   secureTokenGenerator: ISecureTokenGenerator;
@@ -111,6 +127,42 @@ export function createApp(deps: AppDependencies): Express {
   const changeCensusPeriodStatusUseCase = new ChangeCensusPeriodStatusUseCase(deps.censusPeriodRepo);
   const listCensusPeriodsUseCase = new ListCensusPeriodsUseCase(deps.censusPeriodRepo);
 
+  // ── Geography use cases ──────────────────────────────────────────
+  const createCorregimientoUseCase = new CreateCorregimientoUseCase(
+    deps.corregimientoRepo,
+    deps.municipalityRepo,
+    deps.geographyAuditRepo
+  );
+
+  const createNeighborhoodUseCase = new CreateNeighborhoodUseCase(
+    deps.neighborhoodRepo,
+    deps.corregimientoRepo,
+    deps.geographyAuditRepo
+  );
+
+  const deactivateCorregimientoUseCase = new DeactivateCorregimientoUseCase(
+    deps.corregimientoRepo,
+    deps.neighborhoodRepo,
+    deps.geographyAuditRepo
+  );
+
+  const reactivateNeighborhoodUseCase = new ReactivateNeighborhoodUseCase(
+    deps.neighborhoodRepo,
+    deps.corregimientoRepo,
+    deps.geographyAuditRepo
+  );
+
+  const getGeographyTreeUseCase = new GetGeographyTreeUseCase(
+    deps.municipalityRepo,
+    deps.corregimientoRepo,
+    deps.neighborhoodRepo
+  );
+
+  const listCorregimientosUseCase = new ListCorregimientosUseCase(
+    deps.corregimientoRepo,
+    deps.neighborhoodRepo
+  );
+
   // ── Controllers ──────────────────────────────────────────────────
   const authController = new AuthController(
     loginUseCase,
@@ -137,16 +189,28 @@ export function createApp(deps: AppDependencies): Express {
     deps.censusPeriodRepo
   );
 
+  const geographyController = new GeographyController(
+    createCorregimientoUseCase,
+    createNeighborhoodUseCase,
+    deactivateCorregimientoUseCase,
+    reactivateNeighborhoodUseCase,
+    getGeographyTreeUseCase,
+    listCorregimientosUseCase,
+    deps.municipalityRepo
+  );
+
   // ── Routes ───────────────────────────────────────────────────────
   const authRoutes = createAuthRoutes(authController, deps.tokenService);
   const userRoutes = createUserRoutes(userController, deps.tokenService);
   const censusPeriodRoutes = createCensusPeriodRoutes(censusPeriodController, deps.tokenService);
+  const geographyRoutes = createGeographyRoutes(geographyController, deps.tokenService);
 
   // Assemble API router
   const apiRouter = Router();
   apiRouter.use("/auth", authRoutes);
   apiRouter.use("/users", userRoutes);
   apiRouter.use("/census-periods", censusPeriodRoutes);
+  apiRouter.use("/geography", geographyRoutes);
 
   // Assemble server
   const app = createServer(apiRouter);
