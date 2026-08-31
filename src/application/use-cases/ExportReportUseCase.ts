@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+import type { IAlcaldiaConfigRepository } from "../../domain/repositories/IAlcaldiaConfigRepository.js";
 import type { IReportRepository, UserScope } from "../../domain/repositories/IReportRepository.js";
 import type { ReportFiltersInput } from "../../domain/value-objects/ReportFilters.js";
 import { validateReportFilters } from "../../domain/value-objects/ReportFilters.js";
@@ -25,6 +28,7 @@ export class ExportReportUseCase {
     private csvExporter: CsvExporter,
     private excelExporter?: ExcelExporter,
     private pdfExporter?: PdfExporter,
+    private alcaldiaRepo?: IAlcaldiaConfigRepository | null,
   ) {}
 
   async execute(
@@ -93,7 +97,17 @@ export class ExportReportUseCase {
     // pdf
     const exporter = this.pdfExporter ?? new PdfExporter();
     const periodName = filters.periodId ? (await this.dataSource.getRepository("CensusPeriodEntity" as any).findOne({ where: { id: filters.periodId } }))?.name : undefined;
-    const buffer = await exporter.export(records, summary, { generatedAt: new Date(), folio, total, periodName, operatorName, filtersApplied: filters as any });
+    let escudoBuffer: Buffer | null = null;
+    if (this.alcaldiaRepo) {
+      try {
+        const cfg = await this.alcaldiaRepo.get();
+        if (cfg.escudoPath) {
+          const abs = path.join(process.cwd(), cfg.escudoPath.replace(/^\//, ""));
+          if (existsSync(abs)) escudoBuffer = readFileSync(abs);
+        }
+      } catch {}
+    }
+    const buffer = await exporter.export(records, summary, { generatedAt: new Date(), folio, total, periodName, operatorName, filtersApplied: filters as any, escudoBuffer } as any);
     const filename = `censo-mototaxis-${date}.pdf`;
     return { content: buffer, contentType: exporter.getContentType(), filename, total };
   }

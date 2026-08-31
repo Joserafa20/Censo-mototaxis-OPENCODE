@@ -1,14 +1,30 @@
 import { randomUUID } from "crypto";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 import type { ICensusRecordRepository } from "../../domain/repositories/ICensusRecordRepository.js";
+import type { IAlcaldiaConfigRepository } from "../../domain/repositories/IAlcaldiaConfigRepository.js";
 import { BatchLimitExceededError, StickerNotEligibleError } from "../../domain/errors/index.js";
 import { BatchSheetRenderer } from "../../infrastructure/export/BatchSheetRenderer.js";
 
+async function resolveEscudoBuffer(alcaldiaRepo?: IAlcaldiaConfigRepository | null): Promise<Buffer | null> {
+  if (!alcaldiaRepo) return null;
+  try {
+    const config = await alcaldiaRepo.get();
+    const escudoPath = (config as any).escudoPath as string | null;
+    if (!escudoPath) return null;
+    const abs = path.join(process.cwd(), escudoPath.replace(/^\//, ""));
+    if (!existsSync(abs)) return null;
+    return readFileSync(abs);
+  } catch { return null; }
+}
+
 export class BatchStickersUseCase {
-  constructor(private readonly repo: ICensusRecordRepository, private readonly renderer: BatchSheetRenderer, private readonly dataSource?: any) {}
+  constructor(private readonly repo: ICensusRecordRepository, private readonly renderer: BatchSheetRenderer, private readonly dataSource?: any, private readonly alcaldiaRepo?: IAlcaldiaConfigRepository | null) {}
   async execute(params: { ids: string[]; actorUserId: string; actorRole: string }): Promise<{ pdf: Buffer; folios: string[] }> {
     if (!params.ids?.length) { const e: any = new Error("ids required"); e.statusCode = 400; throw e; }
     if (params.ids.length > 100) throw new BatchLimitExceededError(100);
     const unique = [...new Set(params.ids)];
+    const escudoBuffer = await resolveEscudoBuffer(this.alcaldiaRepo ?? null);
     if (this.dataSource) {
       const qr = this.dataSource.createQueryRunner();
       await qr.connect(); await qr.startTransaction();
@@ -26,7 +42,7 @@ export class BatchStickersUseCase {
           }
         }
         await qr.commitTransaction();
-        const pdf = await this.renderer.render(records as any);
+        const pdf = await this.renderer.render(records as any, escudoBuffer);
         return { pdf, folios: records.map((r: any) => r.stickerFolio) };
       } catch (e) { try { await qr.rollbackTransaction(); } catch {} throw e; } finally { try { await qr.release(); } catch {} }
     } else {
@@ -39,7 +55,7 @@ export class BatchStickersUseCase {
         if (!r.stickerFolio) { r.stickerFolio = randomUUID(); await this.repo.save(r); }
         records.push(r);
       }
-      const pdf = await this.renderer.render(records);
+      const pdf = await this.renderer.render(records, escudoBuffer);
       return { pdf, folios: records.map(r => r.stickerFolio) };
     }
   }

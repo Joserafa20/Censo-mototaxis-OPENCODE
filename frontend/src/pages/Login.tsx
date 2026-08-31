@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,8 +7,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [escudoPath, setEscudoPath] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('/api/v1/alcaldia', { headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.escudoPath) setEscudoPath(data.escudoPath); })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,6 +40,11 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo / Header */}
         <div className="text-center mb-8">
+          {escudoPath ? (
+            <div className="flex justify-center mb-4">
+              <img src={`http://localhost:3000${escudoPath}`} alt="Escudo" className="w-20 h-20 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            </div>
+          ) : null}
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-full mb-4">
             <svg
               className="w-8 h-8 text-white"

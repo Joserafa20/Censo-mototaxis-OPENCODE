@@ -342,11 +342,17 @@ export function createApp(deps: AppDependencies): Express {
     addEvidenceUseCase
   );
 
+  // ── Alcaldia repo (for escudo) ───────────────────────────────────
+  let alcaldiaRepoForExport: any = null;
+  if (deps.dataSource) {
+    try { alcaldiaRepoForExport = new TypeormAlcaldiaConfigRepository(deps.dataSource.getRepository(AlcaldiaConfigEntity) as any); } catch { alcaldiaRepoForExport = null; }
+  }
+
   // ── Sticker / Verify use cases ─────────────────────────────────────
   const stickerRenderer = new StickerRenderer();
   const batchRenderer = new BatchSheetRenderer();
-  const generateStickerUseCase = new GenerateStickerUseCase(deps.censusRecordRepo as any, stickerRenderer, (deps as any).dataSource);
-  const batchStickersUseCase = new BatchStickersUseCase(deps.censusRecordRepo as any, batchRenderer, (deps as any).dataSource);
+  const generateStickerUseCase = new GenerateStickerUseCase(deps.censusRecordRepo as any, stickerRenderer, (deps as any).dataSource, alcaldiaRepoForExport);
+  const batchStickersUseCase = new BatchStickersUseCase(deps.censusRecordRepo as any, batchRenderer, (deps as any).dataSource, alcaldiaRepoForExport);
   const verifyStickerUseCase = new VerifyStickerUseCase(deps.censusRecordRepo as any);
   const stickerController = new StickerController(generateStickerUseCase, batchStickersUseCase);
   const verifyController = new VerifyController(verifyStickerUseCase);
@@ -363,7 +369,7 @@ export function createApp(deps: AppDependencies): Express {
     const excelExporter = new ExcelExporter();
     const pdfExporter = new PdfExporter();
     const getSummaryUseCase = new GetReportSummaryUseCase(reportRepo, reportCache, deps.dataSource);
-    const exportUseCase = new ExportReportUseCase(reportRepo, deps.dataSource, csvExporter, excelExporter, pdfExporter);
+    const exportUseCase = new ExportReportUseCase(reportRepo, deps.dataSource, csvExporter, excelExporter, pdfExporter, alcaldiaRepoForExport);
     const reportController = new ReportController(getSummaryUseCase, exportUseCase);
     reportRoutes = createReportRoutes(reportController, deps.tokenService);
 
@@ -377,7 +383,7 @@ export function createApp(deps: AppDependencies): Express {
   let alcaldiaRoutes: Router | null = null;
   if (deps.dataSource) {
     try {
-      const alcaldiaRepo = new TypeormAlcaldiaConfigRepository(deps.dataSource.getRepository(AlcaldiaConfigEntity) as any);
+      const alcaldiaRepo = alcaldiaRepoForExport ?? new TypeormAlcaldiaConfigRepository(deps.dataSource.getRepository(AlcaldiaConfigEntity) as any);
       const getAlcaldiaUseCase = new GetAlcaldiaConfigUseCase(alcaldiaRepo);
       const updateAlcaldiaUseCase = new UpdateAlcaldiaConfigUseCase(alcaldiaRepo);
       const alcaldiaController = new AlcaldiaController(getAlcaldiaUseCase, updateAlcaldiaUseCase);

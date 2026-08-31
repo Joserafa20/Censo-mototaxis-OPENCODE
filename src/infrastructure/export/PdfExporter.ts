@@ -6,7 +6,7 @@ import type { IExporter, ExportMeta } from "../../domain/services/IExporter.js";
 import { LEY_1581_NOTICE } from "../../domain/services/Anonymizer.js";
 
 export class PdfExporter implements IExporter {
-  async export(records: CensusRecord[], summary: ReportSummary, meta: ExportMeta): Promise<Buffer> {
+  async export(records: CensusRecord[], summary: ReportSummary, meta: ExportMeta & { escudoBuffer?: Buffer | null }): Promise<Buffer> {
     const folio = meta.folio ?? randomUUID();
     const generatedAt = meta.generatedAt ?? new Date();
     const hash = createHash("sha256").update(JSON.stringify({ records, summary, folio })).digest("hex");
@@ -18,8 +18,14 @@ export class PdfExporter implements IExporter {
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
 
-      // Header
-      doc.fontSize(16).fillColor("#1e40af").text("Censo de Mototaxis — Sabanalarga", { align: "center" });
+      // Header - escudo
+      const escudoBuf = (meta as any).escudoBuffer as Buffer | null | undefined;
+      if (escudoBuf) {
+        try { doc.image(escudoBuf, 40, 30, { width: 40, height: 40 }); } catch {}
+        doc.fontSize(16).fillColor("#1e40af").text("Censo de Mototaxis — Sabanalarga", { align: "center" });
+      } else {
+        doc.fontSize(16).fillColor("#1e40af").text("Censo de Mototaxis — Sabanalarga", { align: "center" });
+      }
       doc.moveDown(0.5);
       doc.fontSize(9).fillColor("#555").text(`Folio: ${folio}  |  Fecha: ${generatedAt.toISOString()}  |  Periodo: ${meta.periodName ?? "—"}  |  Operador: ${meta.operatorName ?? "—"}`, { align: "center" });
       doc.fontSize(7).fillColor("#888").text(`SHA256: ${hash}`, { align: "center" });

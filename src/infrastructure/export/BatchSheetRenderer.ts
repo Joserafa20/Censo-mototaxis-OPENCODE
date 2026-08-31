@@ -8,7 +8,7 @@ function verifyUrl(folio: string): string {
 }
 
 export class BatchSheetRenderer {
-  async render(records: Array<CensusRecord & { stickerFolio: string }>): Promise<Buffer> {
+  async render(records: Array<CensusRecord & { stickerFolio: string }>, escudoBuffer?: Buffer | null): Promise<Buffer> {
     const qrMap = new Map<string, Buffer>();
     for (const r of records) {
       const buf = await QRCode.toBuffer(verifyUrl(r.stickerFolio!), { width: 120, margin: 0 });

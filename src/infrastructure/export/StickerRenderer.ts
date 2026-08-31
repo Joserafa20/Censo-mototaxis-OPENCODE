@@ -18,13 +18,15 @@ function buildVerifyUrl(folio: string): string {
 }
 
 export class StickerRenderer {
-  async render(record: CensusRecord, folio: string): Promise<Buffer> {
+  async render(record: CensusRecord, folio: string, escudoBuffer?: Buffer | null): Promise<Buffer> {
     const verifyUrl = buildVerifyUrl(folio);
     const qrBuf = await QRCode.toBuffer(verifyUrl, { width: 180, margin: 1 });
-    const logoPath = path.join(process.cwd(), "assets", "logo-alcaldia.png");
-    const hasLogo = existsSync(logoPath);
-    let logoBuf: Buffer | null = null;
-    if (hasLogo) try { logoBuf = readFileSync(logoPath); } catch {}
+    let logoBuf: Buffer | null = escudoBuffer ?? null;
+    if (!logoBuf) {
+      const logoPath = path.join(process.cwd(), "assets", "logo-alcaldia.png");
+      const hasLogo = existsSync(logoPath);
+      if (hasLogo) try { logoBuf = readFileSync(logoPath); } catch {}
+    }
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: [260, 380], margin: 12, info: { Title: `Adhesivo ${folio}` } } as any);

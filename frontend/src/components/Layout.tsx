@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const allNavItems = [
   { path: '/dashboard', label: 'Inicio', roles: ['admin', 'censista'], icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -15,6 +17,13 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [escudoPath, setEscudoPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get('/alcaldia').then(res => {
+      if (res.data?.escudoPath) setEscudoPath(res.data.escudoPath);
+    }).catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -26,9 +35,14 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 text-white flex flex-col">
         {/* Logo */}
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-xl font-bold text-white">Censo Mototaxis</h1>
-          <p className="text-sm text-gray-400 mt-1">Panel de Administración</p>
+        <div className="p-6 border-b border-gray-700 flex items-center gap-3">
+          {escudoPath ? (
+            <img src={`http://localhost:3000${escudoPath}`} alt="Escudo" className="w-10 h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          ) : null}
+          <div>
+            <h1 className="text-xl font-bold text-white">Censo Mototaxis</h1>
+            <p className="text-sm text-gray-400 mt-1">Panel de Administración</p>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -76,11 +90,16 @@ export default function Layout() {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">
-              Bienvenido, {user?.name || 'Usuario'}
-            </h2>
-            <p className="text-sm text-gray-500">{user?.email}</p>
+          <div className="flex items-center gap-3">
+            {escudoPath ? (
+              <img src={`http://localhost:3000${escudoPath}`} alt="Escudo" className="w-10 h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            ) : null}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Bienvenido, {user?.name || 'Usuario'}
+              </h2>
+              <p className="text-sm text-gray-500">{user?.email}</p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
