@@ -12,3 +12,5 @@ export { StationEntity } from "./StationEntity.js";
 export { StationAgentEntity } from "./StationAgentEntity.js";
 export { CensusRecordEntity } from "./CensusRecordEntity.js";
 export { CensusAuditEntity } from "./CensusAuditEntity.js";
+export { CensusValidationEntity } from "./CensusValidationEntity.js";
+export { AuditLogEntity } from "./AuditLogEntity.js";

@@ -9,6 +9,7 @@ import Periods from './pages/Periods';
 import Stations from './pages/Stations';
 import CensusRecords from './pages/CensusRecords';
 import Reports from './pages/Reports';
+import OfflineBadge from './components/OfflineBadge';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           {/* 404 fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <OfflineBadge />
       </BrowserRouter>
     </AuthProvider>
   );

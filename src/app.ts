@@ -62,7 +62,13 @@ import { ExportReportUseCase } from "./application/use-cases/ExportReportUseCase
 import { TypeormReportRepository } from "./infrastructure/repositories/TypeormReportRepository.js";
 import { InMemoryReportCache } from "./infrastructure/cache/InMemoryReportCache.js";
 import { CsvExporter } from "./infrastructure/export/CsvExporter.js";
+import { ExcelExporter } from "./infrastructure/export/ExcelExporter.js";
+import { PdfExporter } from "./infrastructure/export/PdfExporter.js";
 import { TypeormValidationRepository } from "./infrastructure/repositories/TypeormValidationRepository.js";
+import { TypeormAuditLogRepository } from "./infrastructure/repositories/TypeormAuditLogRepository.js";
+import { GetAuditTimelineUseCase } from "./application/use-cases/GetAuditTimelineUseCase.js";
+import { AuditController } from "./presentation/controllers/AuditController.js";
+import { createAuditRoutes } from "./presentation/routes/audit.routes.js";
 import { CensusValidationEntity } from "./infrastructure/database/entities/CensusValidationEntity.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
@@ -323,14 +329,22 @@ export function createApp(deps: AppDependencies): Express {
 
   // ── Report use cases ───────────────────────────────────────────────
   let reportRoutes: any = null;
+  let auditRoutes: any = null;
   if (deps.dataSource) {
     const reportRepo = new TypeormReportRepository(deps.dataSource);
     const reportCache = new InMemoryReportCache(60_000);
     const csvExporter = new CsvExporter();
+    const excelExporter = new ExcelExporter();
+    const pdfExporter = new PdfExporter();
     const getSummaryUseCase = new GetReportSummaryUseCase(reportRepo, reportCache, deps.dataSource);
-    const exportUseCase = new ExportReportUseCase(reportRepo, deps.dataSource, csvExporter);
+    const exportUseCase = new ExportReportUseCase(reportRepo, deps.dataSource, csvExporter, excelExporter, pdfExporter);
     const reportController = new ReportController(getSummaryUseCase, exportUseCase);
     reportRoutes = createReportRoutes(reportController, deps.tokenService);
+
+    const auditRepo = new TypeormAuditLogRepository(deps.dataSource);
+    const getAuditTimelineUseCase = new GetAuditTimelineUseCase(auditRepo);
+    const auditController = new AuditController(getAuditTimelineUseCase);
+    auditRoutes = createAuditRoutes(auditController, deps.tokenService);
   }
 
   // ── Routes ───────────────────────────────────────────────────────
@@ -350,6 +364,7 @@ export function createApp(deps: AppDependencies): Express {
   apiRouter.use("/stations", stationRoutes);
   apiRouter.use("/census-records", censusRecordRoutes);
   if (reportRoutes) apiRouter.use("/reports", reportRoutes);
+  if (auditRoutes) apiRouter.use("/audit", auditRoutes);
 
   // Assemble server
   const app = createServer(apiRouter);

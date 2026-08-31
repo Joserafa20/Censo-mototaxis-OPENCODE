@@ -12,3 +12,5 @@ export { IStationRepository } from "./IStationRepository.js";
 export { IStationAgentRepository } from "./IStationAgentRepository.js";
 export { ICensusRecordRepository, CensusRecordListFilters, CensusRecordListOptions } from "./ICensusRecordRepository.js";
 export { ICensusAuditRepository } from "./ICensusAuditRepository.js";
+export { IAuditLogRepository } from "./IAuditLogRepository.js";
+export { IReportRepository } from "./IReportRepository.js";

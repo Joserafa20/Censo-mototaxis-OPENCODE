@@ -29,6 +29,7 @@ import { StationAgentEntity } from "./entities/StationAgentEntity.js";
 import { CensusRecordEntity } from "./entities/CensusRecordEntity.js";
 import { CensusAuditEntity } from "./entities/CensusAuditEntity.js";
 import { CensusValidationEntity } from "./entities/CensusValidationEntity.js";
+import { AuditLogEntity } from "./entities/AuditLogEntity.js";
 
 const entities = [
   UserEntity,
@@ -46,6 +47,7 @@ const entities = [
   CensusRecordEntity,
   CensusAuditEntity,
   CensusValidationEntity,
+  AuditLogEntity,
 ];
 
 let dataSourceOptions: DataSourceOptions;

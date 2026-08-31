@@ -40,3 +40,4 @@ export {
   CensusAuditAction,
   createCensusAuditEntry,
 } from "./CensusAudit.js";
+export { AuditLog, AuditAction, createAuditLog } from "./AuditLog.js";

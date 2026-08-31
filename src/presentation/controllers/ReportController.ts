@@ -46,11 +46,15 @@ export class ReportController {
         dateTo: req.query.dateTo as string | undefined,
         includeInactive: req.query.includeInactive as string | undefined,
       };
-      const result = await this.exportUseCase.execute(input, scope);
+      const result = await this.exportUseCase.execute(input, scope, user.userId);
       res.setHeader("Content-Type", result.contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
       res.setHeader("X-Total-Count", String(result.total));
-      res.status(200).send(result.content);
+      if (Buffer.isBuffer(result.content)) {
+        res.status(200).end(result.content);
+      } else {
+        res.status(200).send(result.content);
+      }
     } catch (err) {
       next(err);
     }

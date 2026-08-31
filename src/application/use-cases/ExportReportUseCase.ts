@@ -12,6 +12,9 @@ import {
 import { maskCedula, maskPhone, maskName } from "../../domain/services/Anonymizer.js";
 import type { DataSource } from "typeorm";
 import { CsvExporter } from "../../infrastructure/export/CsvExporter.js";
+import { ExcelExporter } from "../../infrastructure/export/ExcelExporter.js";
+import { PdfExporter } from "../../infrastructure/export/PdfExporter.js";
+import { randomUUID } from "crypto";
 
 const EXPORT_LIMIT = 10_000;
 
@@ -20,20 +23,19 @@ export class ExportReportUseCase {
     private reportRepo: IReportRepository,
     private dataSource: DataSource,
     private csvExporter: CsvExporter,
+    private excelExporter?: ExcelExporter,
+    private pdfExporter?: PdfExporter,
   ) {}
 
   async execute(
     input: ReportFiltersInput & { format: string },
     scope: UserScope,
-  ): Promise<{ content: string; contentType: string; filename: string; total: number }> {
+    operatorName?: string,
+  ): Promise<{ content: Buffer | string; contentType: string; filename: string; total: number }> {
     const format = input.format?.toLowerCase();
-    if (format !== "csv" && format !== "xlsx") throw new InvalidFormatError();
-    if (format === "xlsx") {
-      // TODO: implement xlsx
-      throw new InvalidFormatError("xlsx not yet implemented — use csv");
-    }
+    if (format !== "csv" && format !== "xlsx" && format !== "pdf") throw new InvalidFormatError();
 
-    const { format: _f, ...filterInput } = input;
+    const { format: _f, ...filterInput } = input as any;
     const filters = validateReportFilters(filterInput);
 
     if (filters.includeInactive && scope.role !== "admin") throw new ForbiddenIncludeInactiveError();
@@ -72,9 +74,27 @@ export class ExportReportUseCase {
       });
     }
 
-    const content = this.csvExporter.export(records);
+    const summary = await this.reportRepo.getSummary(filters, scope);
     const date = new Date().toISOString().slice(0, 10);
-    const filename = `censo-mototaxis-${date}.csv`;
-    return { content, contentType: "text/csv; charset=utf-8", filename, total };
+    const folio = randomUUID();
+
+    if (format === "csv") {
+      const content = this.csvExporter.export(records);
+      const filename = `censo-mototaxis-${date}.csv`;
+      return { content, contentType: "text/csv; charset=utf-8", filename, total };
+    }
+    if (format === "xlsx") {
+      const exporter = this.excelExporter ?? new ExcelExporter();
+      const periodName = filters.periodId ? (await this.dataSource.getRepository("CensusPeriodEntity" as any).findOne({ where: { id: filters.periodId } }))?.name : undefined;
+      const buffer = await exporter.export(records, summary, { generatedAt: new Date(), folio, total, periodName, operatorName, filtersApplied: filters as any });
+      const filename = `censo-mototaxis-${date}.xlsx`;
+      return { content: buffer, contentType: exporter.getContentType(), filename, total };
+    }
+    // pdf
+    const exporter = this.pdfExporter ?? new PdfExporter();
+    const periodName = filters.periodId ? (await this.dataSource.getRepository("CensusPeriodEntity" as any).findOne({ where: { id: filters.periodId } }))?.name : undefined;
+    const buffer = await exporter.export(records, summary, { generatedAt: new Date(), folio, total, periodName, operatorName, filtersApplied: filters as any });
+    const filename = `censo-mototaxis-${date}.pdf`;
+    return { content: buffer, contentType: exporter.getContentType(), filename, total };
   }
 }
