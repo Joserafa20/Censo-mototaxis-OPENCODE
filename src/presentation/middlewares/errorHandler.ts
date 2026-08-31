@@ -12,7 +12,7 @@ interface DomainError extends Error {
 }
 
 export function errorHandler(
-  err: Error,
+  err: any,
   _req: Request,
   res: Response,
   _next: NextFunction
@@ -20,9 +20,21 @@ export function errorHandler(
   const statusCode = isDomainError(err) ? err.statusCode : 500;
   const message = isDomainError(err) ? err.message : "Internal server error";
 
+  // Structured errors with code/details (422/413 habeas)
+  if (err?.code && err?.details) {
+    res.status(statusCode).json({
+      code: err.code,
+      message,
+      details: err.details,
+      error: err.name ?? "Error",
+    });
+    return;
+  }
+
   res.status(statusCode).json({
     error: err.name ?? "Error",
     message,
+    ...(err?.code ? { code: err.code } : {}),
   });
 }
 

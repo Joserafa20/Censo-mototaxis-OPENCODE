@@ -12,6 +12,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import path from "path";
 import type { Router } from "express";
 
 export interface ServerConfig {
@@ -53,6 +54,11 @@ export function createServer(
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  // Static evidence files
+  const evidencePath = process.env.EVIDENCE_STORAGE_PATH ?? path.join(process.cwd(), "uploads", "evidence");
+  app.use("/evidence", express.static(evidencePath));
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   // Mount routes
   app.use("/api/v1", routes);

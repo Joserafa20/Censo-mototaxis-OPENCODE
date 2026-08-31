@@ -5,6 +5,7 @@ import type { ICorregimientoRepository } from "../../domain/repositories/ICorreg
 import type { INeighborhoodRepository } from "../../domain/repositories/INeighborhoodRepository.js";
 import type { IValidationRepository } from "../../domain/repositories/IValidationRepository.js";
 import { ValidationFailedError, InvalidTransitionError, NotOwnerError, PeriodClosedError } from "../../domain/errors/ValidationErrors.js";
+import { isValidConsent } from "../../domain/value-objects/Consent.js";
 
 export class SubmitCensusRecordUseCase {
   constructor(
@@ -41,6 +42,14 @@ export class SubmitCensusRecordUseCase {
 
     // Validations automáticas
     const details: Array<{ field: string; code: string }> = [];
+
+    // Habeas: re-validate consent when HABEAS_ENABLED
+    if (process.env.HABEAS_ENABLED !== "false") {
+      const rec: any = record as any;
+      if (!isValidConsent(rec.consentGiven, rec.consentSignature)) {
+        details.push({ field: "consentGiven", code: "INVALID_CONSENT" });
+      }
+    }
 
     // cédula formato colombiano 6-10 dígitos (spec strict) else 6-12 fallback
     const cedula = record.mototaxiCedula?.trim() ?? "";

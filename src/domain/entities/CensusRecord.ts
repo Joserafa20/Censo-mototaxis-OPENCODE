@@ -68,6 +68,10 @@ export interface CensusRecord {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  consentGiven: boolean;
+  consentSignature: string;
+  consentDate: Date | null;
+  evidencePhotos: string[];
 }
 
 /**
@@ -107,6 +111,10 @@ export function createCensusRecord(
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
+    consentGiven: false,
+    consentSignature: "",
+    consentDate: null,
+    evidencePhotos: [],
     ...overrides,
   };
 }

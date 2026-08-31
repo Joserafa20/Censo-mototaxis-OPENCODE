@@ -9,6 +9,7 @@ import type { ApproveCensusRecordUseCase } from "../../application/use-cases/App
 import type { RejectCensusRecordUseCase } from "../../application/use-cases/RejectCensusRecordUseCase.js";
 import type { ICensusRecordRepository } from "../../domain/repositories/ICensusRecordRepository.js";
 import type { IValidationRepository } from "../../domain/repositories/IValidationRepository.js";
+import type { AddEvidencePhotoUseCase } from "../../application/use-cases/AddEvidencePhotoUseCase.js";
 
 export class CensusController {
   constructor(
@@ -21,7 +22,8 @@ export class CensusController {
     private readonly reviewUseCase?: ReviewCensusRecordUseCase,
     private readonly approveUseCase?: ApproveCensusRecordUseCase,
     private readonly rejectUseCase?: RejectCensusRecordUseCase,
-    private readonly validationRepo?: IValidationRepository
+    private readonly validationRepo?: IValidationRepository,
+    private readonly addEvidenceUseCase?: AddEvidencePhotoUseCase
   ) {}
 
   createRecord = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -45,6 +47,9 @@ export class CensusController {
         motorcycleYear,
         latitude,
         longitude,
+        consentGiven,
+        consentSignature,
+        consentDate,
       } = req.body;
 
       if (!periodId || !corregimientoId || !operationType || !mototaxiCedula || !mototaxiFirstName || !mototaxiLastName || !motorcyclePlate || !motorcycleBrand || !motorcycleModel || !motorcycleColor) {
@@ -71,10 +76,50 @@ export class CensusController {
         latitude: latitude ?? null,
         longitude: longitude ?? null,
         createdByUserId: actor.userId,
+        consentGiven: consentGiven as boolean,
+        consentSignature: (consentSignature as string) ?? "",
+        consentDate,
       });
 
+      // include habeas fields for spec: fetch record if possible
+      try {
+        const rec: any = await this.censusRecordRepo.findById(result.recordId);
+        if (rec) {
+          res.status(201).json({ ...result, consentGiven: rec.consentGiven, consentSignature: rec.consentSignature, consentDate: rec.consentDate, evidencePhotos: rec.evidencePhotos });
+          return;
+        }
+      } catch {}
       res.status(201).json(result);
     } catch (error) {
+      const e: any = error;
+      if (e?.statusCode === 422 || e?.statusCode === 413) {
+        res.status(e.statusCode).json({ code: e.code, message: e.message, details: e.details, error: e.name });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  addEvidence = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.addEvidenceUseCase) { res.status(500).json({ error: "Not configured" }); return; }
+      const id = String(req.params.id);
+      const actor = req.user!;
+      const files = (req.files as Express.Multer.File[]) ?? (req.file ? [req.file as any] : []);
+      if (!files.length) { res.status(400).json({ code: "NO_FILES", message: "No files provided" }); return; }
+      const result = await this.addEvidenceUseCase.execute({
+        recordId: id,
+        files: files.map((f: any) => ({ mimetype: f.mimetype, size: f.size, buffer: f.buffer ?? Buffer.alloc(0), originalname: f.originalname })),
+        actorUserId: actor.userId,
+        actorRole: actor.role,
+      });
+      res.status(200).json(result);
+    } catch (error) {
+      const e: any = error;
+      if (e?.statusCode === 422 || e?.statusCode === 413 || e?.statusCode === 403 || e?.statusCode === 404) {
+        res.status(e.statusCode).json({ code: e.code ?? e.name, message: e.message, details: e.details, error: e.name });
+        return;
+      }
       next(error);
     }
   };
@@ -211,9 +256,10 @@ export class CensusController {
   };
 
   private handleValidationError(error: any, res: Response, next: NextFunction): void {
-    if (error?.statusCode === 422 && error?.code === "VALIDATION_FAILED") {
-      res.status(422).json({ code: error.code, details: error.details }); return;
+    if (error?.statusCode === 422 && (error?.code === "VALIDATION_FAILED" || error?.code === "INVALID_CONSENT" || String(error?.code).startsWith("INVALID_SIGNATURE") || String(error?.code).startsWith("INVALID_EVIDENCE") || error?.code === "EVIDENCE_LIMIT_EXCEEDED")) {
+      res.status(422).json({ code: error.code, details: error.details, message: error.message }); return;
     }
+    if (error?.statusCode === 413) { res.status(413).json({ code: error.code, message: error.message, details: error.details }); return; }
     if (error?.statusCode === 400 && (error?.code === "REJECT_REASON_REQUIRED" || error?.code === "REJECT_REASON_TOO_SHORT" || error?.code === "REJECT_REASON_TOO_LONG")) {
       res.status(400).json({ code: error.code, message: error.message }); return;
     }

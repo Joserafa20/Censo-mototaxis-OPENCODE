@@ -303,6 +303,10 @@ export class TypeormReportRepository implements IReportRepository {
       isActive: Boolean(e.isActive),
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
+      consentGiven: Boolean((e as any).consentGiven ?? false),
+      consentSignature: (e as any).consentSignature ?? "",
+      consentDate: (e as any).consentDate ?? null,
+      evidencePhotos: (()=>{ const v=(e as any).evidencePhotos; if(Array.isArray(v)) return v; if(typeof v==="string"&&v) try{return JSON.parse(v)}catch{return []} return []})(),
     }));
   }
 }

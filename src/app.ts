@@ -51,6 +51,8 @@ import { GeographyController } from "./presentation/controllers/GeographyControl
 import { StationController } from "./presentation/controllers/StationController.js";
 import { CensusController } from "./presentation/controllers/CensusController.js";
 import { createGeographyRoutes } from "./presentation/routes/geography.routes.js";
+import { AddEvidencePhotoUseCase } from "./application/use-cases/AddEvidencePhotoUseCase.js";
+import { FileEvidenceStorage } from "./infrastructure/storage/FileEvidenceStorage.js";
 import { createStationRoutes } from "./presentation/routes/stations.routes.js";
 import { createCensusRecordRoutes } from "./presentation/routes/census-records.routes.js";
 import { createReportRoutes } from "./presentation/routes/report.routes.js";
@@ -256,6 +258,8 @@ export function createApp(deps: AppDependencies): Express {
   const approveUseCase = new ApproveCensusRecordUseCase(deps.censusRecordRepo, deps.censusPeriodRepo, validationRepo);
   const rejectUseCase = new RejectCensusRecordUseCase(deps.censusRecordRepo, deps.censusPeriodRepo, validationRepo);
   const closePeriodUseCase = new CloseCensusPeriodUseCase(deps.censusPeriodRepo, deps.censusRecordRepo);
+  const evidenceStorage = new FileEvidenceStorage(process.env.EVIDENCE_STORAGE_PATH ?? "./uploads/evidence");
+  const addEvidenceUseCase = new AddEvidencePhotoUseCase(deps.censusRecordRepo, evidenceStorage);
 
   // ── Controllers ──────────────────────────────────────────────────
   const authController = new AuthController(
@@ -313,7 +317,8 @@ export function createApp(deps: AppDependencies): Express {
     reviewUseCase,
     approveUseCase,
     rejectUseCase,
-    validationRepo
+    validationRepo,
+    addEvidenceUseCase
   );
 
   // ── Report use cases ───────────────────────────────────────────────

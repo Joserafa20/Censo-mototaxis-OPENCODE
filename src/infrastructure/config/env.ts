@@ -54,4 +54,6 @@ export const env = {
     password: optional("ADMIN_PASSWORD", "Admin@2026!"),
   },
   port: parseInt(optional("PORT", "3000"), 10),
+  habeasEnabled: optional("HABEAS_ENABLED", "true") !== "false",
+  evidenceStoragePath: optional("EVIDENCE_STORAGE_PATH", "./uploads/evidence"),
 } as const;

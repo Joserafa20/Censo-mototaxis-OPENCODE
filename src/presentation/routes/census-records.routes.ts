@@ -1,8 +1,10 @@
 import { Router } from "express";
+import multer from "multer";
 import type { CensusController } from "../controllers/CensusController.js";
 import type { ITokenService } from "../../domain/services/ITokenService.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { roleMiddleware } from "../middlewares/roleMiddleware.js";
+import { ALLOWED_MIMES, MAX_EVIDENCE_SIZE_BYTES } from "../../domain/value-objects/EvidencePhoto.js";
 
 export function createCensusRecordRoutes(
   censusController: CensusController,
@@ -11,10 +13,30 @@ export function createCensusRecordRoutes(
   const router = Router();
   const auth = authMiddleware(tokenService);
 
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_EVIDENCE_SIZE_BYTES },
+    fileFilter: (_req, file, cb) => {
+      if ((ALLOWED_MIMES as readonly string[]).includes(file.mimetype)) cb(null, true);
+      else cb(new Error("INVALID_EVIDENCE_MIME"));
+    },
+  });
+
   // Search must be before /:id
   router.get("/search", auth, roleMiddleware("admin", "censista"), censusController.searchRecords);
 
   router.post("/", auth, roleMiddleware("admin", "censista"), censusController.createRecord);
+
+  router.post("/:id/evidence", auth, roleMiddleware("admin", "censista"), (req, res, next) => {
+    upload.array("photos", 5)(req as any, res as any, (err: any) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") return res.status(413).json({ code: "PAYLOAD_TOO_LARGE", message: "Archivo excede 5 MB" });
+        if (err.message === "INVALID_EVIDENCE_MIME") return res.status(422).json({ code: "INVALID_EVIDENCE_MIME", message: "MIME no permitido" });
+        return res.status(400).json({ code: err.code ?? "UPLOAD_ERROR", message: err.message });
+      }
+      next();
+    });
+  }, censusController.addEvidence);
 
   router.get("/", auth, roleMiddleware("admin", "censista"), censusController.listRecords);
 

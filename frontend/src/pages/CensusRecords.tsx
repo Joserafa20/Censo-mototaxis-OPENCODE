@@ -117,7 +117,11 @@ export default function CensusRecords() {
     barrioOperacion: '',
     observaciones: '',
     stationId: '',
+    consentGiven: false,
+    consentSignature: '',
   });
+  const [evidenceFiles, setEvidenceFiles] = useState<FileList | null>(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
   const fetchRecords = async () => {
     try {
@@ -184,6 +188,8 @@ export default function CensusRecords() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.consentGiven) { setError('Debe otorgar consentimiento informado (Ley 1581)'); return; }
+    if (!form.consentSignature.trim() || form.consentSignature.trim().length < 3 || form.consentSignature.trim().length > 200) { setError('Firma requerida 3-200 caracteres'); return; }
     setIsSubmitting(true);
     setError('');
     try {
@@ -211,7 +217,26 @@ export default function CensusRecords() {
         barrioOperacion: form.barrioOperacion || undefined,
         observaciones: form.observaciones || undefined,
         stationId: form.stationId ? Number(form.stationId) : undefined,
+        consentGiven: form.consentGiven,
+        consentSignature: form.consentSignature.trim(),
       };
+      // Map to backend expected names (both forms for compatibility)
+      // Backend uses mototaxiCedula / motorcyclePlate but legacy payload also accepted via cedula -> try sending canonical fields too
+      (payload as any).mototaxiCedula = form.cedula;
+      (payload as any).mototaxiFirstName = form.nombreCompleto.split(' ')[0] || form.nombreCompleto;
+      (payload as any).mototaxiLastName = form.nombreCompleto.split(' ').slice(1).join(' ') || '—';
+      (payload as any).motorcyclePlate = form.motoPlaca;
+      (payload as any).motorcycleBrand = form.motoMarca || 'N/A';
+      (payload as any).motorcycleModel = form.motoModelo || 'N/A';
+      (payload as any).motorcycleColor = form.motoColor || 'N/A';
+      // Need periodId/corregimientoId - try to use first available
+      if (!(payload as any).periodId) {
+        try { const pr = await api.get('/census-periods', { params: { pageSize: 1 }}); const p = (pr.data.periods || pr.data.data || [])[0]; if (p) (payload as any).periodId = p.id; } catch {}
+      }
+      if (!(payload as any).corregimientoId) {
+        try { const gr = await api.get('/geography/tree'); const corrs = (gr.data.data || gr.data || []); const flat: any[] = Array.isArray(corrs) ? corrs : []; // attempt find first corregimiento
+          let cid = flat[0]?.corregimientos?.[0]?.id || flat[0]?.id; if (cid) (payload as any).corregimientoId = cid; } catch {}
+      }
       payload.documentNumber = payload.cedula;
       payload.fullName = payload.nombreCompleto;
       payload.placa = payload.motoPlaca;
@@ -223,7 +248,7 @@ export default function CensusRecords() {
         telefonos: '', direccion: '', barrio: '', motoMarca: '', motoModelo: '', motoColor: '',
         motoPlaca: '', motoAnio: '', motoTipo: '', motoNumeroMotor: '', estado: 'activo',
         ingresosDiarios: '', horario: '', operacion: 'station', corregimientoOperacion: '',
-        barrioOperacion: '', observaciones: '', stationId: '',
+        barrioOperacion: '', observaciones: '', stationId: '', consentGiven: false, consentSignature: '',
       });
       fetchRecords();
     } catch (err: any) {
@@ -305,6 +330,24 @@ export default function CensusRecords() {
   const closeDetail = () => {
     setSelected(null);
     setDetail(null);
+  };
+
+  const handleEvidenceUpload = async () => {
+    if (!selected || !evidenceFiles || evidenceFiles.length === 0) return;
+    if (evidenceFiles.length > 5) { setError('Máximo 5 fotos'); return; }
+    const currentCount = ((detail as any)?.evidencePhotos?.length || 0);
+    if (currentCount + evidenceFiles.length > 5) { setError('Se excede límite de 5 fotos'); return; }
+    setUploadingEvidence(true);
+    try {
+      const fd = new FormData();
+      Array.from(evidenceFiles).forEach(f => fd.append('photos', f));
+      await api.post(`/census-records/${String(selected.id)}/evidence`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setEvidenceFiles(null);
+      fetchDetail(String(selected.id));
+      fetchRecords();
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.response?.data?.code || 'Error al subir fotos');
+    } finally { setUploadingEvidence(false); }
   };
 
   const renderActions = (r: CensusRecord) => {
@@ -522,6 +565,30 @@ export default function CensusRecords() {
                       {getValidationReason(detail) && (
                         <div className="col-span-2"><span className="text-gray-500">Motivo rechazo:</span> <span className="text-red-600">{getValidationReason(detail)}</span></div>
                       )}
+                    </div>
+                  )}
+                  {(detail as any)?.consentGiven !== undefined && (
+                    <div className="bg-white border border-gray-200 rounded-xl p-3 text-sm space-y-1">
+                      <h4 className="font-semibold text-gray-900">Consentimiento</h4>
+                      <p><span className="text-gray-500">Otorgado:</span> {(detail as any).consentGiven ? 'Sí' : 'No'}</p>
+                      <p><span className="text-gray-500">Firma:</span> {(detail as any).consentSignature || '—'}</p>
+                      <p><span className="text-gray-500">Fecha:</span> {(detail as any).consentDate ? new Date((detail as any).consentDate).toLocaleString('es-PA') : '—'}</p>
+                    </div>
+                  )}
+                  {(detail as any)?.evidencePhotos !== undefined && (
+                    <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+                      <h4 className="text-sm font-semibold text-gray-900">Fotos evidenciales ({((detail as any).evidencePhotos?.length) || 0}/5)</h4>
+                      {((detail as any).evidencePhotos?.length || 0) > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {(detail as any).evidencePhotos.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer"><img src={url} alt={`evidencia ${i+1}`} className="w-full h-20 object-cover rounded border" /></a>
+                          ))}
+                        </div>
+                      ) : <p className="text-xs text-gray-400">Sin fotos</p>}
+                      <div className="flex gap-2 items-center">
+                        <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => setEvidenceFiles(e.target.files)} className="text-xs flex-1" />
+                        <button disabled={uploadingEvidence || !evidenceFiles || evidenceFiles.length===0} onClick={handleEvidenceUpload} className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs disabled:opacity-40">{uploadingEvidence ? 'Subiendo...' : 'Subir'}</button>
+                      </div>
                     </div>
                   )}
                   <div>
@@ -750,6 +817,18 @@ export default function CensusRecords() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
                     <textarea value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none" placeholder="Observaciones adicionales..." />
                   </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Consentimiento informado — Ley 1581</h4>
+                <label className="flex items-start gap-2 mb-3 cursor-pointer">
+                  <input type="checkbox" checked={form.consentGiven} onChange={(e) => setForm({ ...form, consentGiven: e.target.checked })} className="mt-1" required />
+                  <span className="text-sm text-gray-700">Autorizo el tratamiento de mis datos personales para fines del censo (consentimiento obligatorio) *</span>
+                </label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Firma del conductor (3–200 caracteres) *</label>
+                  <input type="text" required value={form.consentSignature} onChange={(e) => setForm({ ...form, consentSignature: e.target.value })} minLength={3} maxLength={200} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none" placeholder="Ej: Juan Pérez 123" />
                 </div>
               </div>
 

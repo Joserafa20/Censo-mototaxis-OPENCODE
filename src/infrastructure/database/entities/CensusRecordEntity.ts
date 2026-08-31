@@ -89,6 +89,25 @@ export class CensusRecordEntity {
   @Column({ type: "boolean", default: true })
   isActive!: boolean;
 
+  @Column({ type: "boolean", default: false })
+  consentGiven!: boolean;
+
+  @Column({ type: "text", default: "" })
+  consentSignature!: string;
+
+  @Column({ type: "datetime", nullable: true })
+  consentDate!: Date | null;
+
+  @Column({
+    type: "text",
+    nullable: true,
+    transformer: {
+      from: (v: string | null) => (v ? JSON.parse(v) as string[] : []),
+      to: (v: string[] | null) => (v && v.length ? JSON.stringify(v) : null),
+    },
+  })
+  evidencePhotos!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

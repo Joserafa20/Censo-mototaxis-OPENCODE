@@ -37,4 +37,5 @@ export interface ICensusRecordRepository {
   countByStatus(periodId: string, statuses: CensusRecordStatus[]): Promise<number>;
   countByStatusGrouped(periodId: string): Promise<Record<string, number>>;
   updateStatus(id: string, status: CensusRecordStatus, extra?: Partial<Pick<CensusRecord, "validationReason" | "validatedBy" | "validatedAt">>): Promise<void>;
+  updateEvidencePhotos(id: string, evidencePhotos: string[]): Promise<void>;
 }

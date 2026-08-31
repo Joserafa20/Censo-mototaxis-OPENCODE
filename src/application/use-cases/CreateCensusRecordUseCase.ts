@@ -19,6 +19,8 @@ import {
   InactiveStationError,
 } from "../../domain/errors/CensusErrors.js";
 import { InvalidCoordinatesError } from "../../domain/errors/GeographyErrors.js";
+import { isValidConsent, getConsentErrorCode } from "../../domain/value-objects/Consent.js";
+import { InvalidConsentError, InvalidSignatureError } from "../../domain/errors/CensusErrors.js";
 
 export interface CreateCensusRecordInput {
   periodId: string;
@@ -39,6 +41,9 @@ export interface CreateCensusRecordInput {
   latitude?: number | null;
   longitude?: number | null;
   createdByUserId: string;
+  consentGiven: boolean;
+  consentSignature: string;
+  consentDate?: unknown;
 }
 
 export interface CreateCensusRecordOutput {
@@ -56,6 +61,20 @@ export class CreateCensusRecordUseCase {
   ) {}
 
   async execute(input: CreateCensusRecordInput): Promise<CreateCensusRecordOutput> {
+    // Habeas flag
+    const habeasEnabled = process.env.HABEAS_ENABLED !== "false";
+    if (habeasEnabled) {
+      const code = getConsentErrorCode(input.consentGiven, input.consentSignature);
+      if (code) {
+        if (code === "INVALID_CONSENT") throw new InvalidConsentError();
+        const msgs: Record<string,string> = {
+          INVALID_SIGNATURE: "La firma no puede estar vacía",
+          INVALID_SIGNATURE_TOO_SHORT: "La firma es muy corta (mínimo 3)",
+          INVALID_SIGNATURE_TOO_LONG: "La firma es muy larga (máximo 200)",
+        };
+        throw new InvalidSignatureError(code, msgs[code] ?? "Firma inválida");
+      }
+    }
     // Validate value objects
     const cedulaVO = MototaxiCedula.create(input.mototaxiCedula);
     const plateVO = MotorcyclePlate.create(input.motorcyclePlate);
@@ -144,6 +163,10 @@ export class CreateCensusRecordUseCase {
       latitude,
       longitude,
       createdByUserId: input.createdByUserId,
+      consentGiven: habeasEnabled ? true : Boolean(input.consentGiven),
+      consentSignature: habeasEnabled ? String(input.consentSignature).trim() : String(input.consentSignature ?? "").trim(),
+      consentDate: habeasEnabled ? new Date() : null,
+      evidencePhotos: [],
     });
 
     await this.censusRecordRepo.save(record);

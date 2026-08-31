@@ -91,6 +91,11 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
     await this.repo.update(id, update);
   }
 
+  async updateEvidencePhotos(id: string, evidencePhotos: string[]): Promise<void> {
+    const val = evidencePhotos.length ? JSON.stringify(evidencePhotos) : null as any;
+    await this.repo.update(id, { evidencePhotos: val } as any);
+  }
+
   private applyFilters(qb: any, filters?: CensusRecordListFilters): void {
     if (!filters) return;
     if (filters.periodId) qb.andWhere("r.periodId = :periodId", { periodId: filters.periodId });
@@ -106,6 +111,11 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
   }
 
   private toDomain(e: CensusRecordEntity): CensusRecord {
+    const rawPhotos: any = (e as any).evidencePhotos;
+    let photos: string[] = [];
+    if (Array.isArray(rawPhotos)) photos = rawPhotos;
+    else if (typeof rawPhotos === "string" && rawPhotos) { try { photos = JSON.parse(rawPhotos); } catch { photos = []; } }
+    else photos = [];
     return {
       id: e.id,
       periodId: e.periodId,
@@ -134,6 +144,10 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
       isActive: e.isActive,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
+      consentGiven: Boolean((e as any).consentGiven ?? (e as any).consent_given ?? false),
+      consentSignature: (e as any).consentSignature ?? (e as any).consent_signature ?? "",
+      consentDate: (e as any).consentDate ?? (e as any).consent_date ?? null,
+      evidencePhotos: photos,
     };
   }
 
@@ -161,6 +175,11 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
     e.inactiveReason = r.inactiveReason;
     e.createdByUserId = r.createdByUserId;
     e.isActive = r.isActive;
+    (e as any).consentGiven = (r as any).consentGiven ?? false;
+    (e as any).consentSignature = (r as any).consentSignature ?? "";
+    (e as any).consentDate = (r as any).consentDate ?? null;
+    const photos = (r as any).evidencePhotos ?? [];
+    (e as any).evidencePhotos = photos.length ? JSON.stringify(photos) : null;
     e.createdAt = r.createdAt;
     e.updatedAt = r.updatedAt;
     return e;

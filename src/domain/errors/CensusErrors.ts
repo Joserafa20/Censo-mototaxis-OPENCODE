@@ -102,3 +102,55 @@ export class CensusRecordAlreadyInactiveError extends Error {
     this.name = "CensusRecordAlreadyInactiveError";
   }
 }
+
+export class InvalidConsentError extends Error {
+  readonly statusCode = 422;
+  readonly code = "INVALID_CONSENT";
+  readonly details: Array<{ field: string; code: string }> = [{ field: "consentGiven", code: "INVALID_CONSENT" }];
+  constructor(message = "El consentimiento es obligatorio (Ley 1581)") {
+    super(message);
+    this.name = "InvalidConsentError";
+  }
+}
+
+export class InvalidSignatureError extends Error {
+  readonly statusCode = 422;
+  readonly code: string;
+  readonly details: Array<{ field: string; code: string }>;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "InvalidSignatureError";
+    this.code = code;
+    this.details = [{ field: "consentSignature", code }];
+  }
+}
+
+export class InvalidEvidencePhotoError extends Error {
+  readonly statusCode = 422;
+  readonly code: string;
+  readonly details: Array<{ field: string; code: string }>;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "InvalidEvidencePhotoError";
+    this.code = code;
+    this.details = [{ field: "evidencePhotos", code }];
+  }
+}
+
+export class EvidenceLimitExceededError extends InvalidEvidencePhotoError {
+  constructor() { super("EVIDENCE_LIMIT_EXCEEDED", "Se excedió el límite de 5 fotos"); }
+}
+
+export class InvalidEvidenceMimeError extends InvalidEvidencePhotoError {
+  constructor() { super("INVALID_EVIDENCE_MIME", "MIME no permitido"); }
+}
+
+export class PayloadTooLargeError extends Error {
+  readonly statusCode = 413;
+  readonly code = "PAYLOAD_TOO_LARGE";
+  readonly details: Array<{ field: string; code: string }> = [{ field: "evidencePhotos", code: "PAYLOAD_TOO_LARGE" }];
+  constructor(message = "Archivo excede 5 MB") {
+    super(message);
+    this.name = "PayloadTooLargeError";
+  }
+}
