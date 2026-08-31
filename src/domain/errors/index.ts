@@ -49,3 +49,4 @@ export {
   InvalidCoordinatesError as CensusInvalidCoordinatesError,
   CensusRecordAlreadyInactiveError,
 } from "./CensusErrors.js";
+export { StickerNotEligibleError, StickerNotFoundError, BatchLimitExceededError } from "./StickerErrors.js";

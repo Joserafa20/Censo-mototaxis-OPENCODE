@@ -25,6 +25,7 @@ export type CensusRecordStatus =
   | "COMPLETADO"
   | "EN_REVISION"
   | "APROBADO"
+  | "APROBADA"
   | "RECHAZADO";
 export type OperationType = "station" | "independent";
 
@@ -37,6 +38,7 @@ export const VALID_STATUS_TRANSITIONS: Record<CensusRecordStatus, CensusRecordSt
   COMPLETADO: ["EN_REVISION"],
   EN_REVISION: ["APROBADO", "RECHAZADO"],
   APROBADO: [],
+  APROBADA: [],
   RECHAZADO: ["EN_PROCESO"],
 };
 
@@ -72,6 +74,7 @@ export interface CensusRecord {
   consentSignature: string;
   consentDate: Date | null;
   evidencePhotos: string[];
+  stickerFolio: string | null;
 }
 
 /**
@@ -115,6 +118,7 @@ export function createCensusRecord(
     consentSignature: "",
     consentDate: null,
     evidencePhotos: [],
+    stickerFolio: null,
     ...overrides,
   };
 }

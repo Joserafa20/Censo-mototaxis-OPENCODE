@@ -112,6 +112,10 @@ export class CensusRecordEntity {
   @Index({ unique: true, where: "clientId IS NOT NULL" } as any)
   clientId!: string | null;
 
+  @Column({ type: "varchar", length: 36, nullable: true })
+  @Index({ unique: true, where: "sticker_folio IS NOT NULL" } as any)
+  stickerFolio!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

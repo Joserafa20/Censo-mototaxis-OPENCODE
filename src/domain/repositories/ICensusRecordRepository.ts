@@ -38,4 +38,7 @@ export interface ICensusRecordRepository {
   countByStatusGrouped(periodId: string): Promise<Record<string, number>>;
   updateStatus(id: string, status: CensusRecordStatus, extra?: Partial<Pick<CensusRecord, "validationReason" | "validatedBy" | "validatedAt">>): Promise<void>;
   updateEvidencePhotos(id: string, evidencePhotos: string[]): Promise<void>;
+  findByFolio(folio: string): Promise<CensusRecord | null>;
+  findByIdsForUpdate(ids: string[], manager?: any): Promise<CensusRecord[]>;
+  saveWithFolio(record: CensusRecord): Promise<void>;
 }

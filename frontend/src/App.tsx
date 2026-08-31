@@ -9,6 +9,8 @@ import Periods from './pages/Periods';
 import Stations from './pages/Stations';
 import CensusRecords from './pages/CensusRecords';
 import Reports from './pages/Reports';
+import Stickers from './pages/Stickers';
+import Verify from './pages/Verify';
 import OfflineBadge from './components/OfflineBadge';
 
 function App() {
@@ -18,6 +20,7 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/verify/:folio" element={<Verify />} />
 
           {/* Protected routes */}
           <Route
@@ -34,6 +37,7 @@ function App() {
             <Route path="stations" element={<Stations />} />
             <Route path="census" element={<CensusRecords />} />
             <Route path="reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="stickers" element={<ProtectedRoute><Stickers /></ProtectedRoute>} />
           </Route>
 
           {/* Redirect root to dashboard */}

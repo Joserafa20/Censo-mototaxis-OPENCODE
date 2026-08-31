@@ -96,6 +96,22 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
     await this.repo.update(id, { evidencePhotos: val } as any);
   }
 
+  async findByFolio(folio: string): Promise<CensusRecord | null> {
+    const e = await this.repo.findOneBy({ stickerFolio: folio } as any);
+    return e ? this.toDomain(e) : null;
+  }
+  async findByIdsForUpdate(ids: string[], manager?: any): Promise<CensusRecord[]> {
+    const repo = manager ? manager.getRepository(CensusRecordEntity) : this.repo;
+    let qb = repo.createQueryBuilder("r").where("r.id IN (:...ids)", { ids });
+    // FOR UPDATE only for postgres
+    try { qb = qb.setLock("pessimistic_write"); } catch {}
+    const entities = await qb.getMany();
+    return entities.map((e: any) => this.toDomain(e));
+  }
+  async saveWithFolio(record: CensusRecord): Promise<void> {
+    await this.save(record);
+  }
+
   private applyFilters(qb: any, filters?: CensusRecordListFilters): void {
     if (!filters) return;
     if (filters.periodId) qb.andWhere("r.periodId = :periodId", { periodId: filters.periodId });
@@ -148,6 +164,7 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
       consentSignature: (e as any).consentSignature ?? (e as any).consent_signature ?? "",
       consentDate: (e as any).consentDate ?? (e as any).consent_date ?? null,
       evidencePhotos: photos,
+      stickerFolio: (e as any).stickerFolio ?? null,
     };
   }
 
@@ -180,6 +197,7 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
     (e as any).consentDate = (r as any).consentDate ?? null;
     const photos = (r as any).evidencePhotos ?? [];
     (e as any).evidencePhotos = photos.length ? JSON.stringify(photos) : null;
+    (e as any).stickerFolio = (r as any).stickerFolio ?? null;
     e.createdAt = r.createdAt;
     e.updatedAt = r.updatedAt;
     return e;

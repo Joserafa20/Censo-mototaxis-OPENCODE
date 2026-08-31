@@ -71,6 +71,15 @@ import { AuditController } from "./presentation/controllers/AuditController.js";
 import { createAuditRoutes } from "./presentation/routes/audit.routes.js";
 import { CensusValidationEntity } from "./infrastructure/database/entities/CensusValidationEntity.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
+import { StickerRenderer } from "./infrastructure/export/StickerRenderer.js";
+import { BatchSheetRenderer } from "./infrastructure/export/BatchSheetRenderer.js";
+import { GenerateStickerUseCase } from "./application/use-cases/GenerateStickerUseCase.js";
+import { BatchStickersUseCase } from "./application/use-cases/BatchStickersUseCase.js";
+import { VerifyStickerUseCase } from "./application/use-cases/VerifyStickerUseCase.js";
+import { StickerController } from "./presentation/controllers/StickerController.js";
+import { VerifyController } from "./presentation/controllers/VerifyController.js";
+import { createStickerRoutes } from "./presentation/routes/sticker.routes.js";
+import { createVerifyRoutes } from "./presentation/routes/verify.routes.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
 import type { IRefreshTokenRepository } from "./domain/repositories/IRefreshTokenRepository.js";
 import type { ILoginAuditRepository } from "./domain/repositories/ILoginAuditRepository.js";
@@ -327,6 +336,17 @@ export function createApp(deps: AppDependencies): Express {
     addEvidenceUseCase
   );
 
+  // ── Sticker / Verify use cases ─────────────────────────────────────
+  const stickerRenderer = new StickerRenderer();
+  const batchRenderer = new BatchSheetRenderer();
+  const generateStickerUseCase = new GenerateStickerUseCase(deps.censusRecordRepo as any, stickerRenderer, (deps as any).dataSource);
+  const batchStickersUseCase = new BatchStickersUseCase(deps.censusRecordRepo as any, batchRenderer, (deps as any).dataSource);
+  const verifyStickerUseCase = new VerifyStickerUseCase(deps.censusRecordRepo as any);
+  const stickerController = new StickerController(generateStickerUseCase, batchStickersUseCase);
+  const verifyController = new VerifyController(verifyStickerUseCase);
+  const stickerRoutes = createStickerRoutes(stickerController, deps.tokenService);
+  const verifyRoutes = createVerifyRoutes(verifyController);
+
   // ── Report use cases ───────────────────────────────────────────────
   let reportRoutes: any = null;
   let auditRoutes: any = null;
@@ -363,11 +383,19 @@ export function createApp(deps: AppDependencies): Express {
   apiRouter.use("/geography", geographyRoutes);
   apiRouter.use("/stations", stationRoutes);
   apiRouter.use("/census-records", censusRecordRoutes);
+  apiRouter.use("/", stickerRoutes);
   if (reportRoutes) apiRouter.use("/reports", reportRoutes);
   if (auditRoutes) apiRouter.use("/audit", auditRoutes);
 
+  // Public verify routes mounted at /api/v1/verify and also /verify for QR convenience
+  const publicRouter = Router();
+  publicRouter.use("/", verifyRoutes);
+
   // Assemble server
   const app = createServer(apiRouter);
+  // Mount public verify also at root /api/v1/verify already covered; also expose at /verify for QR link host compatibility
+  app.use("/api/v1", verifyRoutes);
+  app.use("/", verifyRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);
