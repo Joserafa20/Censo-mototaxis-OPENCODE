@@ -30,6 +30,7 @@ import { CensusRecordEntity } from "./entities/CensusRecordEntity.js";
 import { CensusAuditEntity } from "./entities/CensusAuditEntity.js";
 import { CensusValidationEntity } from "./entities/CensusValidationEntity.js";
 import { AuditLogEntity } from "./entities/AuditLogEntity.js";
+import { AlcaldiaConfigEntity } from "./entities/AlcaldiaConfigEntity.js";
 
 const entities = [
   UserEntity,
@@ -48,6 +49,7 @@ const entities = [
   CensusAuditEntity,
   CensusValidationEntity,
   AuditLogEntity,
+  AlcaldiaConfigEntity,
 ];
 
 let dataSourceOptions: DataSourceOptions;

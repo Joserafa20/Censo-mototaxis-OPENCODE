@@ -80,6 +80,12 @@ import { StickerController } from "./presentation/controllers/StickerController.
 import { VerifyController } from "./presentation/controllers/VerifyController.js";
 import { createStickerRoutes } from "./presentation/routes/sticker.routes.js";
 import { createVerifyRoutes } from "./presentation/routes/verify.routes.js";
+import { GetAlcaldiaConfigUseCase } from "./application/use-cases/GetAlcaldiaConfigUseCase.js";
+import { UpdateAlcaldiaConfigUseCase } from "./application/use-cases/UpdateAlcaldiaConfigUseCase.js";
+import { AlcaldiaController } from "./presentation/controllers/AlcaldiaController.js";
+import { createAlcaldiaRoutes } from "./presentation/routes/alcaldia.routes.js";
+import { AlcaldiaConfigEntity } from "./infrastructure/database/entities/AlcaldiaConfigEntity.js";
+import { TypeormAlcaldiaConfigRepository } from "./infrastructure/repositories/TypeormAlcaldiaConfigRepository.js";
 import type { IUserRepository } from "./domain/repositories/IUserRepository.js";
 import type { IRefreshTokenRepository } from "./domain/repositories/IRefreshTokenRepository.js";
 import type { ILoginAuditRepository } from "./domain/repositories/ILoginAuditRepository.js";
@@ -367,6 +373,18 @@ export function createApp(deps: AppDependencies): Express {
     auditRoutes = createAuditRoutes(auditController, deps.tokenService);
   }
 
+  // ── Alcaldia config ────────────────────────────────────────────
+  let alcaldiaRoutes: Router | null = null;
+  if (deps.dataSource) {
+    try {
+      const alcaldiaRepo = new TypeormAlcaldiaConfigRepository(deps.dataSource.getRepository(AlcaldiaConfigEntity) as any);
+      const getAlcaldiaUseCase = new GetAlcaldiaConfigUseCase(alcaldiaRepo);
+      const updateAlcaldiaUseCase = new UpdateAlcaldiaConfigUseCase(alcaldiaRepo);
+      const alcaldiaController = new AlcaldiaController(getAlcaldiaUseCase, updateAlcaldiaUseCase);
+      alcaldiaRoutes = createAlcaldiaRoutes(alcaldiaController, deps.tokenService);
+    } catch { /* fallback if entity not yet synced */ }
+  }
+
   // ── Routes ───────────────────────────────────────────────────────
   const authRoutes = createAuthRoutes(authController, deps.tokenService);
   const userRoutes = createUserRoutes(userController, deps.tokenService);
@@ -383,6 +401,7 @@ export function createApp(deps: AppDependencies): Express {
   apiRouter.use("/geography", geographyRoutes);
   apiRouter.use("/stations", stationRoutes);
   apiRouter.use("/census-records", censusRecordRoutes);
+  if (alcaldiaRoutes) apiRouter.use("/alcaldia", alcaldiaRoutes);
   apiRouter.use("/", stickerRoutes);
   if (reportRoutes) apiRouter.use("/reports", reportRoutes);
   if (auditRoutes) apiRouter.use("/audit", auditRoutes);

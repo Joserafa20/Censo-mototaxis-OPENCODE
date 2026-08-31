@@ -11,6 +11,7 @@ import CensusRecords from './pages/CensusRecords';
 import Reports from './pages/Reports';
 import Stickers from './pages/Stickers';
 import Verify from './pages/Verify';
+import AlcaldiaConfig from './pages/AlcaldiaConfig';
 import OfflineBadge from './components/OfflineBadge';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
             <Route path="census" element={<CensusRecords />} />
             <Route path="reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="stickers" element={<ProtectedRoute><Stickers /></ProtectedRoute>} />
+            <Route path="alcaldia" element={<ProtectedRoute role="admin"><AlcaldiaConfig /></ProtectedRoute>} />
           </Route>
 
           {/* Redirect root to dashboard */}

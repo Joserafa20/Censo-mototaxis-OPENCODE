@@ -14,3 +14,4 @@ export { CensusRecordEntity } from "./CensusRecordEntity.js";
 export { CensusAuditEntity } from "./CensusAuditEntity.js";
 export { CensusValidationEntity } from "./CensusValidationEntity.js";
 export { AuditLogEntity } from "./AuditLogEntity.js";
+export { AlcaldiaConfigEntity } from "./AlcaldiaConfigEntity.js";
