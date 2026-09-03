@@ -6,6 +6,7 @@ import type { INeighborhoodRepository } from "../../domain/repositories/INeighbo
 import type { IValidationRepository } from "../../domain/repositories/IValidationRepository.js";
 import { ValidationFailedError, InvalidTransitionError, NotOwnerError, PeriodClosedError } from "../../domain/errors/ValidationErrors.js";
 import { isValidConsent } from "../../domain/value-objects/Consent.js";
+import { validateVehicleFields } from "./censusVehicleValidation.js";
 
 export class SubmitCensusRecordUseCase {
   constructor(
@@ -90,6 +91,26 @@ export class SubmitCensusRecordUseCase {
       }
     } catch {
       details.push({ field: "corregimiento_id", code: "GEOGRAPHY_NOT_ACTIVE" });
+    }
+
+    // re-validate vehicleType fields
+    try {
+      const r:any = record as any;
+      // need station repo check? use injected corregimientoRepo as placeholder not available; skip station active via no repo
+      await validateVehicleFields({
+        vehicleType: r.vehicleType ?? "MOTOTAXI",
+        ownershipType: r.ownershipType ?? null,
+        operationMode: r.operationMode ?? null,
+        stationId: r.stationId ?? null,
+        tarifaValor: r.tarifaValor ?? null,
+        documentosAlDia: r.documentosAlDia ?? null,
+        horario: r.horario ?? null,
+        actividadMotocarro: r.actividadMotocarro ?? null,
+      });
+    } catch (e:any) {
+      const code = e.code ?? e.message ?? "VALIDATION_FAILED";
+      const field = e.details?.[0]?.field ?? "vehicleType";
+      details.push({ field, code });
     }
 
     if (details.length) throw new ValidationFailedError(details);

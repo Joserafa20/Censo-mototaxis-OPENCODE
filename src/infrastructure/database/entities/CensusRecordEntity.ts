@@ -13,6 +13,7 @@ import {
 @Index(["status"])
 @Index(["periodId"])
 @Index(["status", "periodId"])
+@Index(["vehicleType"])
 export class CensusRecordEntity {
   @PrimaryColumn("uuid")
   id!: string;
@@ -107,6 +108,29 @@ export class CensusRecordEntity {
     },
   })
   evidencePhotos!: string | null;
+
+  @Column({ type: "varchar", length: 20, default: "MOTOTAXI" })
+  vehicleType!: string;
+
+  @Column({ type: "varchar", length: 20, nullable: true })
+  ownershipType!: string | null;
+
+  @Column({ type: "varchar", length: 20, nullable: true })
+  operationMode!: string | null;
+
+  // stationId already exists
+
+  @Column({ type: "decimal", precision: 10, scale: 2, nullable: true })
+  tarifaValor!: number | null;
+
+  @Column({ type: "boolean", nullable: true })
+  documentosAlDia!: boolean | null;
+
+  @Column({ type: "varchar", length: 20, nullable: true })
+  horario!: string | null;
+
+  @Column({ type: "varchar", length: 150, nullable: true })
+  actividadMotocarro!: string | null;
 
   @Column({ type: "varchar", length: 64, nullable: true })
   clientId!: string | null;

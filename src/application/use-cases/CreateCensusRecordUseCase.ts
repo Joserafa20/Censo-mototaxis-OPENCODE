@@ -21,6 +21,7 @@ import {
 import { InvalidCoordinatesError } from "../../domain/errors/GeographyErrors.js";
 import { isValidConsent, getConsentErrorCode } from "../../domain/value-objects/Consent.js";
 import { InvalidConsentError, InvalidSignatureError } from "../../domain/errors/CensusErrors.js";
+import { validateVehicleFields } from "./censusVehicleValidation.js";
 
 export interface CreateCensusRecordInput {
   periodId: string;
@@ -44,6 +45,13 @@ export interface CreateCensusRecordInput {
   consentGiven: boolean;
   consentSignature: string;
   consentDate?: unknown;
+  vehicleType?: string;
+  ownershipType?: string | null;
+  operationMode?: string | null;
+  tarifaValor?: number | null;
+  documentosAlDia?: boolean | null;
+  horario?: string | null;
+  actividadMotocarro?: string | null;
 }
 
 export interface CreateCensusRecordOutput {
@@ -134,12 +142,23 @@ export class CreateCensusRecordUseCase {
       if (!neighborhood.isActive) throw new InactiveNeighborhoodError();
     }
 
-    // Validate station if applicable
+    // Validate station if applicable (legacy operationType)
     if (input.operationType === "station" && input.stationId) {
       const station = await this.stationRepo.findById(input.stationId);
       if (!station) throw new InactiveStationError("Estación no encontrada");
       if (!station.isActive) throw new InactiveStationError();
     }
+    // VehicleType discriminated validation
+    await validateVehicleFields({
+      vehicleType: (input as any).vehicleType ?? "MOTOTAXI",
+      ownershipType: (input as any).ownershipType ?? null,
+      operationMode: (input as any).operationMode ?? null,
+      stationId: (input as any).stationId ?? null,
+      tarifaValor: (input as any).tarifaValor ?? null,
+      documentosAlDia: (input as any).documentosAlDia ?? null,
+      horario: (input as any).horario ?? null,
+      actividadMotocarro: (input as any).actividadMotocarro ?? null,
+    }, this.stationRepo);
 
     // Create domain entity
     const recordId = `cr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -150,6 +169,13 @@ export class CreateCensusRecordUseCase {
       neighborhoodId: input.neighborhoodId ?? null,
       stationId: input.operationType === "station" ? (input.stationId ?? null) : null,
       operationType: input.operationType,
+      vehicleType: ((input as any).vehicleType ?? "MOTOTAXI") as any,
+      ownershipType: (input as any).ownershipType ?? null,
+      operationMode: (input as any).operationMode ?? null,
+      tarifaValor: (input as any).tarifaValor ?? null,
+      documentosAlDia: (input as any).documentosAlDia ?? null,
+      horario: (input as any).horario ?? null,
+      actividadMotocarro: (input as any).actividadMotocarro ? String((input as any).actividadMotocarro).trim() : null,
       mototaxiCedula: cedulaVO.value,
       mototaxiFirstName: input.mototaxiFirstName.trim(),
       mototaxiLastName: input.mototaxiLastName.trim(),

@@ -154,3 +154,24 @@ export class PayloadTooLargeError extends Error {
     this.name = "PayloadTooLargeError";
   }
 }
+
+export class InvalidVehicleTypeError extends Error {
+  readonly statusCode = 400; readonly code = "INVALID_VEHICLE_TYPE"; readonly details = [{ field: "vehicleType", code: "INVALID_VEHICLE_TYPE" }];
+  constructor(msg="Tipo de vehículo inválido"){ super(msg); this.name="InvalidVehicleTypeError"; }
+}
+export class InvalidTarifaError extends Error {
+  readonly statusCode = 400; readonly code = "INVALID_TARIFA"; readonly details = [{ field: "tarifaValor", code: "INVALID_TARIFA" }];
+  constructor(msg="Tarifa inválida"){ super(msg); this.name="InvalidTarifaError"; }
+}
+export class StationNotActiveError extends Error {
+  readonly statusCode = 400; readonly code = "STATION_NOT_ACTIVE"; readonly details = [{ field: "stationId", code: "STATION_NOT_ACTIVE" }];
+  constructor(msg="Estación no activa"){ super(msg); this.name="StationNotActiveError"; }
+}
+export class RequiredActividadError extends Error {
+  readonly statusCode = 400; readonly code = "REQUIRED_ACTIVIDAD"; readonly details = [{ field: "actividadMotocarro", code: "REQUIRED_ACTIVIDAD" }];
+  constructor(msg="Actividad requerida"){ super(msg); this.name="RequiredActividadError"; }
+}
+export class RequiredDocumentosError extends Error {
+  readonly statusCode = 400; readonly code = "REQUIRED_DOCUMENTOS"; readonly details = [{ field: "documentosAlDia", code: "REQUIRED_DOCUMENTOS" }];
+  constructor(msg="documentosAlDia requerido"){ super(msg); this.name="RequiredDocumentosError"; }
+}

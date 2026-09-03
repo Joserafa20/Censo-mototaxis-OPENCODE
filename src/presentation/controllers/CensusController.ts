@@ -50,6 +50,13 @@ export class CensusController {
         consentGiven,
         consentSignature,
         consentDate,
+        vehicleType,
+        ownershipType,
+        operationMode,
+        tarifaValor,
+        documentosAlDia,
+        horario,
+        actividadMotocarro,
       } = req.body;
 
       if (!periodId || !corregimientoId || !operationType || !mototaxiCedula || !mototaxiFirstName || !mototaxiLastName || !motorcyclePlate || !motorcycleBrand || !motorcycleModel || !motorcycleColor) {
@@ -79,7 +86,14 @@ export class CensusController {
         consentGiven: consentGiven as boolean,
         consentSignature: (consentSignature as string) ?? "",
         consentDate,
-      });
+        vehicleType: vehicleType ?? "MOTOTAXI",
+        ownershipType: ownershipType ?? null,
+        operationMode: operationMode ?? null,
+        tarifaValor: tarifaValor ?? null,
+        documentosAlDia: documentosAlDia ?? null,
+        horario: horario ?? null,
+        actividadMotocarro: actividadMotocarro ?? null,
+      } as any);
 
       // include habeas fields for spec: fetch record if possible
       try {
@@ -92,6 +106,10 @@ export class CensusController {
       res.status(201).json(result);
     } catch (error) {
       const e: any = error;
+      if (e?.statusCode === 400 && e?.details) {
+        res.status(400).json({ code: e.code ?? "VALIDATION_ERROR", message: e.message, details: e.details, errors: e.details, vehicleType: req.body?.vehicleType });
+        return;
+      }
       if (e?.statusCode === 422 || e?.statusCode === 413) {
         res.status(e.statusCode).json({ code: e.code, message: e.message, details: e.details, error: e.name });
         return;

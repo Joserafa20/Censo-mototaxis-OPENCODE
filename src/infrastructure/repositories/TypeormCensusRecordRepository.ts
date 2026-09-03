@@ -139,6 +139,13 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
       neighborhoodId: e.neighborhoodId,
       stationId: e.stationId,
       operationType: e.operationType as "station" | "independent",
+      vehicleType: ((e as any).vehicleType ?? (e as any).vehicle_type ?? "MOTOTAXI") as any,
+      ownershipType: (e as any).ownershipType ?? (e as any).ownership_type ?? null,
+      operationMode: (e as any).operationMode ?? (e as any).operation_mode ?? null,
+      tarifaValor: (e as any).tarifaValor ?? (e as any).tarifa_valor != null ? Number((e as any).tarifaValor ?? (e as any).tarifa_valor) : null,
+      documentosAlDia: (e as any).documentosAlDia ?? (e as any).documentos_al_dia ?? null,
+      horario: (e as any).horario ?? null,
+      actividadMotocarro: (e as any).actividadMotocarro ?? (e as any).actividad_motocarro ?? null,
       mototaxiCedula: e.mototaxiCedula,
       mototaxiFirstName: e.mototaxiFirstName,
       mototaxiLastName: e.mototaxiLastName,
@@ -176,6 +183,13 @@ export class TypeormCensusRecordRepository implements ICensusRecordRepository {
     e.neighborhoodId = r.neighborhoodId;
     e.stationId = r.stationId;
     e.operationType = r.operationType;
+    (e as any).vehicleType = (r as any).vehicleType ?? "MOTOTAXI";
+    (e as any).ownershipType = (r as any).ownershipType ?? null;
+    (e as any).operationMode = (r as any).operationMode ?? null;
+    (e as any).tarifaValor = (r as any).tarifaValor ?? null;
+    (e as any).documentosAlDia = (r as any).documentosAlDia ?? null;
+    (e as any).horario = (r as any).horario ?? null;
+    (e as any).actividadMotocarro = (r as any).actividadMotocarro ?? null;
     e.mototaxiCedula = r.mototaxiCedula;
     e.mototaxiFirstName = r.mototaxiFirstName;
     e.mototaxiLastName = r.mototaxiLastName;

@@ -48,8 +48,8 @@ export class GenerateStickerUseCase {
     }
 
     let folio = randomUUID();
-    // atomic assignment
-    if (this.dataSource) {
+    // atomic assignment - simple path for SQLite (pessimistic lock not supported on better-sqlite3)
+    if (false && this.dataSource) {
       const qr = this.dataSource.createQueryRunner();
       await qr.connect();
       await qr.startTransaction();

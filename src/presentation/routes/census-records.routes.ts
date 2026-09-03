@@ -5,6 +5,8 @@ import type { ITokenService } from "../../domain/services/ITokenService.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { roleMiddleware } from "../middlewares/roleMiddleware.js";
 import { ALLOWED_MIMES, MAX_EVIDENCE_SIZE_BYTES } from "../../domain/value-objects/EvidencePhoto.js";
+import { validate } from "../middlewares/validate.js";
+import { censusCreateSchema } from "../validators/census.schema.js";
 
 export function createCensusRecordRoutes(
   censusController: CensusController,
@@ -25,7 +27,8 @@ export function createCensusRecordRoutes(
   // Search must be before /:id
   router.get("/search", auth, roleMiddleware("admin", "censista"), censusController.searchRecords);
 
-  router.post("/", auth, roleMiddleware("admin", "censista"), censusController.createRecord);
+  router.post("/", auth, roleMiddleware("admin", "censista"), validate(censusCreateSchema), censusController.createRecord);
+  router.patch("/:id", auth, roleMiddleware("admin", "censista"), validate(censusCreateSchema), async (req,res,next)=>{ const uc:any = (censusController as any).updateUseCase; if(!uc) return res.status(500).json({error:"Not configured"}); try{ await uc.execute({ id: String(req.params.id), ...req.body }); res.json({ ok:true }); } catch(e){ next(e); } });
 
   router.post("/:id/evidence", auth, roleMiddleware("admin", "censista"), (req, res, next) => {
     upload.array("photos", 5)(req as any, res as any, (err: any) => {

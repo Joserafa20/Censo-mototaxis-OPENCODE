@@ -42,6 +42,11 @@ export const VALID_STATUS_TRANSITIONS: Record<CensusRecordStatus, CensusRecordSt
   RECHAZADO: ["EN_PROCESO"],
 };
 
+export type VehicleType = "MOTO_FAMILIAR" | "MOTOTAXI" | "MOTOCARRO";
+export type OwnershipType = "PROPIA" | "PAGA_TARIFA";
+export type OperationMode = "ESTACION" | "CIRCULANTE";
+export type Horario = "DIURNO" | "NOCTURNO";
+
 export interface CensusRecord {
   id: string;
   periodId: string;
@@ -49,6 +54,13 @@ export interface CensusRecord {
   neighborhoodId: string | null;
   stationId: string | null;
   operationType: OperationType;
+  vehicleType: VehicleType;
+  ownershipType: OwnershipType | null;
+  operationMode: OperationMode | null;
+  tarifaValor: number | null;
+  documentosAlDia: boolean | null;
+  horario: Horario | null;
+  actividadMotocarro: string | null;
   mototaxiCedula: string;
   mototaxiFirstName: string;
   mototaxiLastName: string;
@@ -101,6 +113,13 @@ export function createCensusRecord(
   return {
     neighborhoodId: null,
     stationId: null,
+    vehicleType: "MOTOTAXI" as VehicleType,
+    ownershipType: null,
+    operationMode: null,
+    tarifaValor: null,
+    documentosAlDia: null,
+    horario: null,
+    actividadMotocarro: null,
     mototaxiPhone: null,
     mototaxiAddress: null,
     motorcycleYear: null,

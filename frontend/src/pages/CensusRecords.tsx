@@ -93,6 +93,7 @@ export default function CensusRecords() {
   // Reject modal
   const [rejectModal, setRejectModal] = useState<{ id: string | number | null; reason: string }>({ id: null, reason: '' });
 
+  const [stations, setStations] = useState<any[]>([]);
   const [form, setForm] = useState({
     cedula: '',
     nombreCompleto: '',
@@ -119,6 +120,13 @@ export default function CensusRecords() {
     stationId: '',
     consentGiven: false,
     consentSignature: '',
+    vehicleType: 'MOTOTAXI' as 'MOTO_FAMILIAR'|'MOTOTAXI'|'MOTOCARRO',
+    ownershipType: '' as ''|'PROPIA'|'PAGA_TARIFA',
+    operationMode: '' as ''|'ESTACION'|'CIRCULANTE',
+    tarifaValor: '',
+    documentosAlDia: null as boolean|null,
+    horarioAmpliado: '' as ''|'DIURNO'|'NOCTURNO',
+    actividadMotocarro: '',
   });
   const [evidenceFiles, setEvidenceFiles] = useState<FileList | null>(null);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
@@ -184,12 +192,29 @@ export default function CensusRecords() {
   useEffect(() => {
     fetchRecords();
     fetchPeriodStatus();
+    api.get('/stations').then(r=> setStations(r.data.stations||r.data.data||r.data||[])).catch(()=>{});
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.consentGiven) { setError('Debe otorgar consentimiento informado (Ley 1581)'); return; }
     if (!form.consentSignature.trim() || form.consentSignature.trim().length < 3 || form.consentSignature.trim().length > 200) { setError('Firma requerida 3-200 caracteres'); return; }
+    // espejo validación por vehicleType
+    if (form.vehicleType==='MOTOTAXI') {
+      if (!form.ownershipType) { setError('ownershipType requerido para MOTOTAXI'); return; }
+      if (!form.operationMode) { setError('operationMode requerido'); return; }
+      if (form.operationMode==='ESTACION' && !form.stationId) { setError('stationId requerido cuando ESTACION'); return; }
+      if (form.ownershipType==='PAGA_TARIFA' && !(Number(form.tarifaValor)>0)) { setError('tarifaValor requerido >0'); return; }
+      if (form.documentosAlDia===null) { setError('documentosAlDia requerido'); return; }
+      if (!form.horarioAmpliado) { setError('horario requerido'); return; }
+    } else if (form.vehicleType==='MOTOCARRO') {
+      if (!form.actividadMotocarro.trim() || form.actividadMotocarro.trim().length<2) { setError('actividadMotocarro requerida >=2'); return; }
+      if (!form.ownershipType) { setError('ownershipType requerido'); return; }
+      if (form.ownershipType==='PAGA_TARIFA' && !(Number(form.tarifaValor)>0)) { setError('tarifaValor requerido >0'); return; }
+      if (form.ownershipType==='PAGA_TARIFA' && form.documentosAlDia===null) { setError('documentosAlDia requerido cuando PAGA_TARIFA'); return; }
+    } else if (form.vehicleType==='MOTO_FAMILIAR') {
+      if (form.documentosAlDia===null) { setError('documentosAlDia requerido'); return; }
+    }
     setIsSubmitting(true);
     setError('');
     try {
@@ -220,6 +245,22 @@ export default function CensusRecords() {
         consentGiven: form.consentGiven,
         consentSignature: form.consentSignature.trim(),
       };
+      (payload as any).vehicleType = form.vehicleType;
+      if (form.vehicleType==='MOTOTAXI') {
+        (payload as any).ownershipType = form.ownershipType;
+        (payload as any).operationMode = form.operationMode;
+        if (form.operationMode==='ESTACION') (payload as any).stationId = form.stationId;
+        if (form.ownershipType==='PAGA_TARIFA') (payload as any).tarifaValor = Number(form.tarifaValor);
+        (payload as any).documentosAlDia = form.documentosAlDia;
+        (payload as any).horario = form.horarioAmpliado;
+      } else if (form.vehicleType==='MOTOCARRO') {
+        (payload as any).actividadMotocarro = form.actividadMotocarro.trim();
+        (payload as any).ownershipType = form.ownershipType;
+        if (form.ownershipType==='PAGA_TARIFA') { (payload as any).tarifaValor = Number(form.tarifaValor); (payload as any).documentosAlDia = form.documentosAlDia; }
+        else { (payload as any).documentosAlDia = form.documentosAlDia; }
+      } else {
+        (payload as any).documentosAlDia = form.documentosAlDia;
+      }
       // Map to backend expected names (both forms for compatibility)
       // Backend uses mototaxiCedula / motorcyclePlate but legacy payload also accepted via cedula -> try sending canonical fields too
       (payload as any).mototaxiCedula = form.cedula;
@@ -249,6 +290,7 @@ export default function CensusRecords() {
         motoPlaca: '', motoAnio: '', motoTipo: '', motoNumeroMotor: '', estado: 'activo',
         ingresosDiarios: '', horario: '', operacion: 'station', corregimientoOperacion: '',
         barrioOperacion: '', observaciones: '', stationId: '', consentGiven: false, consentSignature: '',
+        vehicleType: 'MOTOTAXI', ownershipType: '', operationMode: '', tarifaValor: '', documentosAlDia: null, horarioAmpliado: '', actividadMotocarro: '',
       });
       fetchRecords();
     } catch (err: any) {
@@ -820,6 +862,37 @@ export default function CensusRecords() {
                 </div>
               </div>
 
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Tipo de vehículo *</h4>
+                <select value={form.vehicleType} onChange={(e)=> setForm({...form, vehicleType: e.target.value as any, ownershipType:'', operationMode:'', tarifaValor:'', documentosAlDia:null, horarioAmpliado:'', actividadMotocarro:''})} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg mb-4">
+                  <option value="MOTO_FAMILIAR">MOTO FAMILIAR</option>
+                  <option value="MOTOTAXI">MOTOTAXI</option>
+                  <option value="MOTOCARRO">MOTOCARRO</option>
+                </select>
+                {form.vehicleType==='MOTOTAXI' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div><label className="block text-sm font-medium mb-1">ownershipType *</label><select value={form.ownershipType} onChange={e=>setForm({...form, ownershipType:e.target.value as any})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="PROPIA">PROPIA</option><option value="PAGA_TARIFA">PAGA_TARIFA</option></select></div>
+                    <div><label className="block text-sm font-medium mb-1">operationMode *</label><select value={form.operationMode} onChange={e=>setForm({...form, operationMode:e.target.value as any})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="ESTACION">ESTACION</option><option value="CIRCULANTE">CIRCULANTE</option></select></div>
+                    {form.operationMode==='ESTACION' && (<div><label className="block text-sm font-medium mb-1">Estación *</label><select value={form.stationId} onChange={e=>setForm({...form, stationId:e.target.value})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione estación</option>{stations.map((s:any)=><option key={s.id} value={s.id}>{s.name||s.nombre||s.id}</option>)}</select></div>)}
+                    {form.ownershipType==='PAGA_TARIFA' && (<div><label className="block text-sm font-medium mb-1">tarifaValor *</label><input type="number" step="0.01" value={form.tarifaValor} onChange={e=>setForm({...form, tarifaValor:e.target.value})} className="w-full px-4 py-2.5 border rounded-lg" placeholder="Ej: 15000" /></div>)}
+                    <div><label className="block text-sm font-medium mb-1">documentosAlDia *</label><select value={form.documentosAlDia===null?'':String(form.documentosAlDia)} onChange={e=>setForm({...form, documentosAlDia: e.target.value===''?null:e.target.value==='true'})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="true">Sí</option><option value="false">No</option></select></div>
+                    <div><label className="block text-sm font-medium mb-1">horario *</label><select value={form.horarioAmpliado} onChange={e=>setForm({...form, horarioAmpliado:e.target.value as any})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="DIURNO">DIURNO</option><option value="NOCTURNO">NOCTURNO</option></select></div>
+                  </div>
+                )}
+                {form.vehicleType==='MOTOCARRO' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">actividadMotocarro *</label><input type="text" value={form.actividadMotocarro} onChange={e=>setForm({...form, actividadMotocarro:e.target.value})} maxLength={150} className="w-full px-4 py-2.5 border rounded-lg" placeholder="Ej: Carga de mercancía" /></div>
+                    <div><label className="block text-sm font-medium mb-1">ownershipType *</label><select value={form.ownershipType} onChange={e=>setForm({...form, ownershipType:e.target.value as any})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="PROPIA">PROPIA</option><option value="PAGA_TARIFA">PAGA_TARIFA</option></select></div>
+                    {form.ownershipType==='PAGA_TARIFA' && (<><div><label className="block text-sm font-medium mb-1">tarifaValor *</label><input type="number" step="0.01" value={form.tarifaValor} onChange={e=>setForm({...form, tarifaValor:e.target.value})} className="w-full px-4 py-2.5 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">documentosAlDia *</label><select value={form.documentosAlDia===null?'':String(form.documentosAlDia)} onChange={e=>setForm({...form, documentosAlDia: e.target.value===''?null:e.target.value==='true'})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="true">Sí</option><option value="false">No</option></select></div></>)}
+                    {form.ownershipType==='PROPIA' && (<div><label className="block text-sm font-medium mb-1">documentosAlDia</label><select value={form.documentosAlDia===null?'':String(form.documentosAlDia)} onChange={e=>setForm({...form, documentosAlDia: e.target.value===''?null:e.target.value==='true'})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="true">Sí</option><option value="false">No</option></select></div>)}
+                  </div>
+                )}
+                {form.vehicleType==='MOTO_FAMILIAR' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div><label className="block text-sm font-medium mb-1">documentosAlDia *</label><select value={form.documentosAlDia===null?'':String(form.documentosAlDia)} onChange={e=>setForm({...form, documentosAlDia: e.target.value===''?null:e.target.value==='true'})} className="w-full px-4 py-2.5 border rounded-lg"><option value="">Seleccione</option><option value="true">Sí</option><option value="false">No</option></select></div>
+                  </div>
+                )}
+              </div>
               <div className="border-t border-gray-100 pt-4">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">Consentimiento informado — Ley 1581</h4>
                 <label className="flex items-start gap-2 mb-3 cursor-pointer">
